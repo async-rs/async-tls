@@ -67,33 +67,35 @@ impl<IO> AsyncRead for TlsStream<IO>
 where
     IO: AsyncRead + AsyncWrite + Unpin,
 {
-    unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [u8]) -> bool {
-        self.io.prepare_uninitialized_buffer(buf)
-    }
-
-    fn poll_read(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut [u8]) -> Poll<io::Result<usize>> {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut [u8],
+    ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
-        let mut stream = Stream::new(&mut this.io, &mut this.session)
-            .set_eof(!this.state.readable());
+        let mut stream =
+            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
 
         match this.state {
-            TlsState::Stream | TlsState::WriteShutdown => match stream.as_mut_pin().poll_read(cx, buf) {
-                Poll::Ready(Ok(0)) => {
-                    this.state.shutdown_read();
-                    Poll::Ready(Ok(0))
-                }
-                Poll::Ready(Ok(n)) => Poll::Ready(Ok(n)),
-                Poll::Ready(Err(ref err)) if err.kind() == io::ErrorKind::ConnectionAborted => {
-                    this.state.shutdown_read();
-                    if this.state.writeable() {
-                        stream.session.send_close_notify();
-                        this.state.shutdown_write();
+            TlsState::Stream | TlsState::WriteShutdown => {
+                match stream.as_mut_pin().poll_read(cx, buf) {
+                    Poll::Ready(Ok(0)) => {
+                        this.state.shutdown_read();
+                        Poll::Ready(Ok(0))
                     }
-                    Poll::Ready(Ok(0))
+                    Poll::Ready(Ok(n)) => Poll::Ready(Ok(n)),
+                    Poll::Ready(Err(ref err)) if err.kind() == io::ErrorKind::ConnectionAborted => {
+                        this.state.shutdown_read();
+                        if this.state.writeable() {
+                            stream.session.send_close_notify();
+                            this.state.shutdown_write();
+                        }
+                        Poll::Ready(Ok(0))
+                    }
+                    Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
+                    Poll::Pending => Poll::Pending,
                 }
-                Poll::Ready(Err(e)) => Poll::Ready(Err(e)),
-                Poll::Pending => Poll::Pending
-            },
+            }
             TlsState::ReadShutdown | TlsState::FullyShutdown => Poll::Ready(Ok(0)),
             #[cfg(feature = "early-data")]
             s => unreachable!("server TLS can not hit this state: {:?}", s),
@@ -105,29 +107,33 @@ impl<IO> AsyncWrite for TlsStream<IO>
 where
     IO: AsyncRead + AsyncWrite + Unpin,
 {
-    fn poll_write(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>> {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
-        let mut stream = Stream::new(&mut this.io, &mut this.session)
-            .set_eof(!this.state.readable());
+        let mut stream =
+            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
         stream.as_mut_pin().poll_write(cx, buf)
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let this = self.get_mut();
-        let mut stream = Stream::new(&mut this.io, &mut this.session)
-            .set_eof(!this.state.readable());
+        let mut stream =
+            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
         stream.as_mut_pin().poll_flush(cx)
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         if self.state.writeable() {
             self.session.send_close_notify();
             self.state.shutdown_write();
         }
 
         let this = self.get_mut();
-        let mut stream = Stream::new(&mut this.io, &mut this.session)
-            .set_eof(!this.state.readable());
-        stream.as_mut_pin().poll_shutdown(cx)
+        let mut stream =
+            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
+        stream.as_mut_pin().poll_close(cx)
     }
 }

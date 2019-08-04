@@ -74,18 +74,18 @@ impl<IO> AsyncRead for TlsStream<IO>
 where
     IO: AsyncRead + AsyncWrite + Unpin,
 {
-    unsafe fn prepare_uninitialized_buffer(&self, buf: &mut [u8]) -> bool {
-        self.io.prepare_uninitialized_buffer(buf)
-    }
-
-    fn poll_read(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &mut [u8]) -> Poll<io::Result<usize>> {
+    fn poll_read(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &mut [u8],
+    ) -> Poll<io::Result<usize>> {
         match self.state {
             #[cfg(feature = "early-data")]
             TlsState::EarlyData => {
                 let this = self.get_mut();
 
-                let mut stream = Stream::new(&mut this.io, &mut this.session)
-                    .set_eof(!this.state.readable());
+                let mut stream =
+                    Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
                 let (pos, data) = &mut this.early_data;
 
                 // complete handshake
@@ -96,7 +96,8 @@ where
                 // write early data (fallback)
                 if !stream.session.is_early_data_accepted() {
                     while *pos < data.len() {
-                        let len = futures::ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
+                        let len =
+                            futures::ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
                         *pos += len;
                     }
                 }
@@ -109,8 +110,8 @@ where
             }
             TlsState::Stream | TlsState::WriteShutdown => {
                 let this = self.get_mut();
-                let mut stream = Stream::new(&mut this.io, &mut this.session)
-                    .set_eof(!this.state.readable());
+                let mut stream =
+                    Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
 
                 match stream.as_mut_pin().poll_read(cx, buf) {
                     Poll::Ready(Ok(0)) => {
@@ -127,7 +128,7 @@ where
                         Poll::Ready(Ok(0))
                     }
                     Poll::Ready(Err(err)) => Poll::Ready(Err(err)),
-                    Poll::Pending => Poll::Pending
+                    Poll::Pending => Poll::Pending,
                 }
             }
             TlsState::ReadShutdown | TlsState::FullyShutdown => Poll::Ready(Ok(0)),
@@ -139,10 +140,14 @@ impl<IO> AsyncWrite for TlsStream<IO>
 where
     IO: AsyncRead + AsyncWrite + Unpin,
 {
-    fn poll_write(self: Pin<&mut Self>, cx: &mut Context<'_>, buf: &[u8]) -> Poll<io::Result<usize>> {
+    fn poll_write(
+        self: Pin<&mut Self>,
+        cx: &mut Context<'_>,
+        buf: &[u8],
+    ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
-        let mut stream = Stream::new(&mut this.io, &mut this.session)
-            .set_eof(!this.state.readable());
+        let mut stream =
+            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
 
         match this.state {
             #[cfg(feature = "early-data")]
@@ -155,9 +160,10 @@ where
                 if let Some(mut early_data) = stream.session.early_data() {
                     let len = match early_data.write(buf) {
                         Ok(n) => n,
-                        Err(ref err) if err.kind() == io::ErrorKind::WouldBlock =>
-                            return Poll::Pending,
-                        Err(err) => return Poll::Ready(Err(err))
+                        Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => {
+                            return Poll::Pending
+                        }
+                        Err(err) => return Poll::Ready(Err(err)),
                     };
                     data.extend_from_slice(&buf[..len]);
                     return Poll::Ready(Ok(len));
@@ -171,7 +177,8 @@ where
                 // write early data (fallback)
                 if !stream.session.is_early_data_accepted() {
                     while *pos < data.len() {
-                        let len = futures::ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
+                        let len =
+                            futures::ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
                         *pos += len;
                     }
                 }
@@ -187,20 +194,20 @@ where
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let this = self.get_mut();
-        let mut stream = Stream::new(&mut this.io, &mut this.session)
-            .set_eof(!this.state.readable());
+        let mut stream =
+            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
         stream.as_mut_pin().poll_flush(cx)
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         if self.state.writeable() {
             self.session.send_close_notify();
             self.state.shutdown_write();
         }
 
         let this = self.get_mut();
-        let mut stream = Stream::new(&mut this.io, &mut this.session)
-            .set_eof(!this.state.readable());
-        stream.as_mut_pin().poll_shutdown(cx)
+        let mut stream =
+            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
+        stream.as_mut_pin().poll_close(cx)
     }
 }

@@ -2,21 +2,19 @@
 
 #![cfg_attr(test, feature(async_await))]
 
-
-mod common;
 pub mod client;
+mod common;
 pub mod server;
 
-use std::{ io, mem };
-use std::sync::Arc;
-use std::pin::Pin;
-use std::future::Future;
-use std::task::{ Poll, Context };
-use tokio_io::{ AsyncRead, AsyncWrite };
-use futures_core as futures;
-use rustls::{ ClientConfig, ClientSession, ServerConfig, ServerSession };
-use webpki::DNSNameRef;
 use common::Stream;
+use futures::io::{AsyncRead, AsyncWrite};
+use rustls::{ClientConfig, ClientSession, ServerConfig, ServerSession};
+use std::future::Future;
+use std::pin::Pin;
+use std::sync::Arc;
+use std::task::{Context, Poll};
+use std::{io, mem};
+use webpki::DNSNameRef;
 
 pub use rustls;
 pub use webpki;

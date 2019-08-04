@@ -9,7 +9,7 @@ use lazy_static::lazy_static;
 use futures::prelude::*;
 use futures::executor;
 use futures::task::SpawnExt;
-use romio::tcp::{ TcpListener, TcpStream };
+use async_std::net::{ TcpListener, TcpStream };
 use rustls::{ ServerConfig, ClientConfig };
 use rustls::internal::pemfile::{ certs, rsa_private_keys };
 use tokio_rustls::{ TlsConnector, TlsAcceptor };
@@ -34,7 +34,7 @@ lazy_static!{
             let done = async {
                 let addr = SocketAddr::from(([127, 0, 0, 1], 0));
                 let mut pool = executor::ThreadPool::new()?;
-                let mut listener = TcpListener::bind(&addr)?;
+                let listener = TcpListener::bind(&addr).await?;
 
                 send.send(listener.local_addr()?).unwrap();
 
@@ -44,7 +44,7 @@ lazy_static!{
                     pool.spawn(
                         async move {
                             let stream = acceptor.accept(stream?).await?;
-                            let (mut reader, mut write) = stream.split();
+                            let (reader, mut write) = stream.split();
                             reader.copy_into(&mut write).await?;
                             Ok(()) as io::Result<()>
                         }

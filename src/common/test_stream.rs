@@ -16,7 +16,7 @@ use rustls::{
 use super::Stream;
 
 
-struct Good<'a>(&'a mut Session);
+struct Good<'a>(&'a mut dyn Session);
 
 impl<'a> AsyncRead for Good<'a> {
     fn poll_read(mut self: Pin<&mut Self>, _cx: &mut Context<'_>, mut buf: &mut [u8]) -> Poll<io::Result<usize>> {
