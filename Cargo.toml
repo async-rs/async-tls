@@ -1,19 +1,19 @@
 [package]
-name = "tokio-rustls"
-version = "0.12.0-alpha"
+name = "async-tls"
+version = "0.1.0-alpha.0"
 authors = ["quininer kel <quininer@live.com>"]
 license = "MIT/Apache-2.0"
-repository = "https://github.com/quininer/tokio-rustls"
-homepage = "https://github.com/quininer/tokio-rustls"
-documentation = "https://docs.rs/tokio-rustls"
+repository = "https://github.com/quininer/async-tls"
+homepage = "https://github.com/quininer/async-tls"
+documentation = "https://docs.rs/async-tls"
 readme = "README.md"
-description = "Asynchronous TLS/SSL streams for Tokio using Rustls."
+description = "Asynchronous TLS/SSL streams using Rustls."
 categories = ["asynchronous", "cryptography", "network-programming"]
 edition = "2018"
 
 [badges]
-travis-ci = { repository = "quininer/tokio-rustls" }
-appveyor = { repository = "quininer/tokio-rustls" }
+travis-ci = { repository = "quininer/async-tls" }
+appveyor = { repository = "quininer/async-tls" }
 
 [dependencies]
 smallvec = "0.6"

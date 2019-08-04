@@ -1,10 +1,10 @@
-# tokio-rustls
-[![travis-ci](https://travis-ci.org/quininer/tokio-rustls.svg?branch=master)](https://travis-ci.org/quininer/tokio-rustls)
-[![appveyor](https://ci.appveyor.com/api/projects/status/4ukw15enii50suqi?svg=true)](https://ci.appveyor.com/project/quininer/tokio-rustls)
-[![crates](https://img.shields.io/crates/v/tokio-rustls.svg)](https://crates.io/crates/tokio-rustls)
-[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/quininer/tokio-rustls/blob/master/LICENSE-MIT)
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/quininer/tokio-rustls/blob/master/LICENSE-APACHE)
-[![docs.rs](https://docs.rs/tokio-rustls/badge.svg)](https://docs.rs/tokio-rustls/)
+# async-tls
+[![travis-ci](https://travis-ci.org/quininer/async-tls.svg?branch=master)](https://travis-ci.org/quininer/async-tls)
+[![appveyor](https://ci.appveyor.com/api/projects/status/4ukw15enii50suqi?svg=true)](https://ci.appveyor.com/project/quininer/async-tls)
+[![crates](https://img.shields.io/crates/v/async-tls.svg)](https://crates.io/crates/async-tls)
+[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/quininer/async-tls/blob/master/LICENSE-MIT)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/quininer/async-tls/blob/master/LICENSE-APACHE)
+[![docs.rs](https://docs.rs/async-tls/badge.svg)](https://docs.rs/async-tls/)
 
 Asynchronous TLS/SSL streams for [Tokio](https://tokio.rs/) using
 [Rustls](https://github.com/ctz/rustls).
@@ -13,7 +13,7 @@ Asynchronous TLS/SSL streams for [Tokio](https://tokio.rs/) using
 
 ```rust
 use webpki::DNSNameRef;
-use tokio_rustls::{ TlsConnector, rustls::ClientConfig };
+use async_tls::{ TlsConnector, rustls::ClientConfig };
 
 // ...
 
@@ -62,5 +62,5 @@ This started as a fork of [tokio-tls](https://github.com/tokio-rs/tokio-tls).
 ### Contribution
 
 Unless you explicitly state otherwise, any contribution intentionally submitted
-for inclusion in tokio-rustls by you, as defined in the Apache-2.0 license, shall be
+for inclusion in async-tls by you, as defined in the Apache-2.0 license, shall be
 dual licensed as above, without any additional terms or conditions.

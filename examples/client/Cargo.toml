@@ -8,5 +8,5 @@ edition = "2018"
 futures-preview = "0.3.0-alpha.17"
 async-std = { path = "../../../async-std" }
 structopt = "0.2"
-tokio-rustls = { path = "../.." }
+async-tls = { path = "../.." }
 webpki-roots = "0.16"

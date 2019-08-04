@@ -7,5 +7,5 @@ edition = "2018"
 [dependencies]
 futures-preview = "0.3.0-alpha.17"
 structopt = "0.2"
-tokio-rustls = { path = "../.." }
+async-tls = { path = "../.." }
 async-std = { path = "../../../async-std" }

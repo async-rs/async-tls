@@ -2,6 +2,9 @@
 
 use async_std::net::TcpListener;
 use async_std::task;
+use async_tls::rustls::internal::pemfile::{certs, rsa_private_keys};
+use async_tls::rustls::{Certificate, NoClientAuth, PrivateKey, ServerConfig};
+use async_tls::TlsAcceptor;
 use futures::executor;
 use futures::prelude::*;
 use futures::task::SpawnExt;
@@ -11,9 +14,6 @@ use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use structopt::StructOpt;
-use tokio_rustls::rustls::internal::pemfile::{certs, rsa_private_keys};
-use tokio_rustls::rustls::{Certificate, NoClientAuth, PrivateKey, ServerConfig};
-use tokio_rustls::TlsAcceptor;
 
 #[derive(StructOpt)]
 struct Options {

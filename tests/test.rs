@@ -1,6 +1,7 @@
 #![feature(async_await)]
 
 use async_std::net::{TcpListener, TcpStream};
+use async_tls::{TlsAcceptor, TlsConnector};
 use futures::executor;
 use futures::prelude::*;
 use futures::task::SpawnExt;
@@ -12,7 +13,6 @@ use std::net::SocketAddr;
 use std::sync::mpsc::channel;
 use std::sync::Arc;
 use std::{io, thread};
-use tokio_rustls::{TlsAcceptor, TlsConnector};
 
 const CERT: &str = include_str!("end.cert");
 const CHAIN: &str = include_str!("end.chain");
