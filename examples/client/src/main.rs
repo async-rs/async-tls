@@ -7,13 +7,11 @@ use std::sync::Arc;
 use std::net::ToSocketAddrs;
 use std::io::BufReader;
 use structopt::StructOpt;
-use romio::TcpStream;
+use async_std::net::TcpStream;
+use async_std::task;
+use async_std::io as aio;
 use futures::prelude::*;
-use futures::executor;
-use futures::compat::{ AsyncRead01CompatExt, AsyncWrite01CompatExt };
 use tokio_rustls::{ TlsConnector, rustls::ClientConfig, webpki::DNSNameRef };
-use tokio_stdin_stdout::{ stdin as tokio_stdin, stdout as tokio_stdout };
-
 
 #[derive(StructOpt)]
 struct Options {
@@ -56,9 +54,9 @@ fn main() -> io::Result<()> {
     }
     let connector = TlsConnector::from(Arc::new(config));
 
-    let fut = async {
+    task::block_on(async {
         let stream = TcpStream::connect(&addr).await?;
-        let (mut stdin, mut stdout) = (tokio_stdin(0).compat(), tokio_stdout(0).compat());
+        let (stdin, mut stdout) = (aio::stdin(), aio::stdout());
 
         let domain = DNSNameRef::try_from_ascii_str(&domain)
             .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid dnsname"))?;
@@ -66,14 +64,12 @@ fn main() -> io::Result<()> {
         let mut stream = connector.connect(domain, stream).await?;
         stream.write_all(content.as_bytes()).await?;
 
-        let (mut reader, mut writer) = stream.split();
+        let (reader, mut writer) = stream.split();
         future::try_join(
             reader.copy_into(&mut stdout),
             stdin.copy_into(&mut writer)
         ).await?;
 
         Ok(())
-    };
-
-    executor::block_on(fut)
+    })
 }
