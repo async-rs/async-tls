@@ -1,6 +1,6 @@
 # async-tls
-[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/dignifiedquire/async-tls/blob/master/LICENSE-MIT)
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/dignifiedquire/async-tls/blob/master/LICENSE-APACHE)
+[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/async-std/async-tls/blob/master/LICENSE-MIT)
+[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/async-std/async-tls/blob/master/LICENSE-APACHE)
 [![docs.rs](https://docs.rs/async-tls/badge.svg)](https://docs.rs/async-tls/)
 
 Asynchronous TLS/SSL streams using [Rustls](https://github.com/ctz/rustls).
