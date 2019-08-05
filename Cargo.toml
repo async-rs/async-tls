@@ -18,13 +18,13 @@ appveyor = { repository = "async-std/async-tls" }
 [dependencies]
 smallvec = "0.6"
 futures-preview = "0.3.0-alpha.17"
-rustls = "0.15"
+rustls = "0.15.2"
 webpki = "0.19"
+webpki-roots = "0.16.0"
 
 [features]
 early-data = []
 
 [dev-dependencies]
 lazy_static = "1"
-webpki-roots = "0.16"
 async-std = { path = "../async-std" }

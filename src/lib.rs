@@ -89,7 +89,21 @@ impl From<Arc<ServerConfig>> for TlsAcceptor {
     }
 }
 
+impl Default for TlsConnector {
+    fn default() -> Self {
+        let mut config = ClientConfig::new();
+        config
+            .root_store
+            .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
+        Arc::new(config).into()
+    }
+}
+
 impl TlsConnector {
+    pub fn new() -> Self {
+        Default::default()
+    }
+
     /// Enable 0-RTT.
     ///
     /// Note that you want to use 0-RTT.
@@ -100,7 +114,7 @@ impl TlsConnector {
         self
     }
 
-    pub fn connect<IO>(&self, domain: DNSNameRef, stream: IO) -> Connect<IO>
+    pub fn connect<'a, IO>(&self, domain: impl AsRef<str>, stream: IO) -> io::Result<Connect<IO>>
     where
         IO: AsyncRead + AsyncWrite + Unpin,
     {
@@ -108,26 +122,35 @@ impl TlsConnector {
     }
 
     #[inline]
-    pub fn connect_with<IO, F>(&self, domain: DNSNameRef, stream: IO, f: F) -> Connect<IO>
+    pub fn connect_with<'a, IO, F>(
+        &self,
+        domain: impl AsRef<str>,
+        stream: IO,
+        f: F,
+    ) -> io::Result<Connect<IO>>
     where
         IO: AsyncRead + AsyncWrite + Unpin,
         F: FnOnce(&mut ClientSession),
     {
+        let domain = DNSNameRef::try_from_ascii_str(domain.as_ref())
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid domain"))?;
         let mut session = ClientSession::new(&self.inner, domain);
         f(&mut session);
 
         #[cfg(not(feature = "early-data"))]
         {
-            Connect(client::MidHandshake::Handshaking(client::TlsStream {
-                session,
-                io: stream,
-                state: TlsState::Stream,
-            }))
+            Ok(Connect(client::MidHandshake::Handshaking(
+                client::TlsStream {
+                    session,
+                    io: stream,
+                    state: TlsState::Stream,
+                },
+            )))
         }
 
         #[cfg(feature = "early-data")]
         {
-            Connect(if self.early_data {
+            Ok(Connect(if self.early_data {
                 client::MidHandshake::EarlyData(client::TlsStream {
                     session,
                     io: stream,
@@ -141,7 +164,7 @@ impl TlsConnector {
                     state: TlsState::Stream,
                     early_data: (0, Vec::new()),
                 })
-            })
+            }))
         }
     }
 }

@@ -5,21 +5,17 @@
 
 Asynchronous TLS/SSL streams using [Rustls](https://github.com/ctz/rustls).
 
-### Basic Structure of a Client
+### Simple Client
 
 ```rust
-use webpki::DNSNameRef;
-use async_tls::{ TlsConnector, rustls::ClientConfig };
+use async_tls::TlsConnector;
+use async_std::net::TcpStream;
 
 // ...
 
-let mut config = ClientConfig::new();
-config.root_store.add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-let config = TlsConnector::from(Arc::new(config));
-let dnsname = DNSNameRef::try_from_ascii_str("www.rust-lang.org").unwrap();
-
-TcpStream::connect(&addr)
-	.and_then(move |socket| config.connect(dnsname, socket))
+let tcp_stream = TcpStream::connect("rust-lang.org:443");
+let connector = TlsConnector::default();
+let tls_stream = connector::connect("www.rust-lang.org")?.await?;
 
 // ...
 ```

@@ -72,12 +72,11 @@ fn start_server() -> &'static (SocketAddr, &'static str, &'static str) {
 async fn start_client(addr: SocketAddr, domain: &str, config: Arc<ClientConfig>) -> io::Result<()> {
     const FILE: &'static [u8] = include_bytes!("../README.md");
 
-    let domain = webpki::DNSNameRef::try_from_ascii_str(domain).unwrap();
     let config = TlsConnector::from(config);
     let mut buf = vec![0; FILE.len()];
 
     let stream = TcpStream::connect(&addr).await?;
-    let mut stream = config.connect(domain, stream).await?;
+    let mut stream = config.connect(domain, stream)?.await?;
     stream.write_all(FILE).await?;
     stream.read_exact(&mut buf).await?;
 
