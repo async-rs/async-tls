@@ -1,13 +1,13 @@
 #![feature(async_await)]
 
 use async_std::io;
-use futures::io::AsyncWriteExt;
 use async_std::net::TcpStream;
 use async_std::task;
 use async_tls::TlsConnector;
-use webpki::DNSNameRef;
+use futures::io::AsyncWriteExt;
 use std::net::ToSocketAddrs;
 use structopt::StructOpt;
+use webpki::DNSNameRef;
 
 #[derive(StructOpt)]
 struct Options {
