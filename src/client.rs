@@ -1,4 +1,12 @@
-use super::*;
+use crate::common::Stream;
+use crate::common::tls_state::TlsState;
+use futures::io::{AsyncRead, AsyncWrite};
+use rustls::ClientSession;
+use std::future::Future;
+use std::pin::Pin;
+use std::task::{Context, Poll};
+use std::{io, mem};
+
 use rustls::Session;
 
 /// A wrapper around an underlying raw stream which implements the TLS or SSL

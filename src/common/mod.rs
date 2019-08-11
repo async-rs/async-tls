@@ -4,6 +4,7 @@ use std::io::{self, Read, Write};
 use std::marker::Unpin;
 use std::pin::Pin;
 use std::task::{Context, Poll};
+pub(crate) mod tls_state;
 
 pub struct Stream<'a, IO, S> {
     pub io: &'a mut IO,

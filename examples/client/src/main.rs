@@ -1,33 +1,26 @@
 #![feature(async_await)]
 
-use async_std::io as aio;
+use async_std::io;
+use futures::io::AsyncWriteExt;
 use async_std::net::TcpStream;
 use async_std::task;
-use async_tls::{rustls::ClientConfig, webpki::DNSNameRef, TlsConnector};
-use futures::prelude::*;
-use std::fs::File;
-use std::io;
-use std::io::BufReader;
+use async_tls::TlsConnector;
+use webpki::DNSNameRef;
 use std::net::ToSocketAddrs;
-use std::path::PathBuf;
-use std::sync::Arc;
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
 struct Options {
+    /// The host to connect to
     host: String,
 
-    /// port
+    /// The port to connect to
     #[structopt(short = "p", long = "port", default_value = "443")]
     port: u16,
 
-    /// domain
+    /// The domain to connect to. This may be different from the host!
     #[structopt(short = "d", long = "domain")]
     domain: Option<String>,
-
-    /// cafile
-    #[structopt(short = "c", long = "cafile", parse(from_os_str))]
-    cafile: Option<PathBuf>,
 }
 
 fn main() -> io::Result<()> {
@@ -37,35 +30,24 @@ fn main() -> io::Result<()> {
         .to_socket_addrs()?
         .next()
         .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
-    let domain = options.domain.unwrap_or(options.host);
-    let content = format!("GET / HTTP/1.0\r\nHost: {}\r\n\r\n", domain);
 
-    let mut config = ClientConfig::new();
-    if let Some(cafile) = &options.cafile {
-        let mut pem = BufReader::new(File::open(cafile)?);
-        config
-            .root_store
-            .add_pem_file(&mut pem)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid cert"))?;
-    } else {
-        config
-            .root_store
-            .add_server_trust_anchors(&webpki_roots::TLS_SERVER_ROOTS);
-    }
-    let connector = TlsConnector::from(Arc::new(config));
+    let domain_option = options.domain.unwrap_or(options.host);
+    let domain = DNSNameRef::try_from_ascii_str(&domain_option)
+            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid dnsname"))?
+            .to_owned();
+
+    let http_request = format!("GET / HTTP/1.0\r\nHost: {}\r\n\r\n", domain_option);
+
+    let connector = TlsConnector::default();
 
     task::block_on(async {
         let stream = TcpStream::connect(&addr).await?;
-        let (stdin, mut stdout) = (aio::stdin(), aio::stdout());
 
-        let domain = DNSNameRef::try_from_ascii_str(&domain)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid dnsname"))?;
+        let mut stream = connector.connect(&domain, stream)?.await?;
+        stream.write_all(http_request.as_bytes()).await?;
 
-        let mut stream = connector.connect(domain, stream).await?;
-        stream.write_all(content.as_bytes()).await?;
-
-        let (reader, mut writer) = stream.split();
-        future::try_join(reader.copy_into(&mut stdout), stdin.copy_into(&mut writer)).await?;
+        let mut stdout = io::stdout();
+        io::copy(&mut stream, &mut stdout).await?;
 
         Ok(())
     })
