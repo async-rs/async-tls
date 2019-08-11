@@ -10,8 +10,8 @@ use std::{io, mem};
 
 use rustls::Session;
 
-/// A wrapper around an underlying raw stream which implements the TLS or SSL
-/// protocol.
+/// The server end of a TLS connection. Can be used like any other bidirectional IO stream.
+/// Wraps the underlying TCP stream.
 #[derive(Debug)]
 pub struct TlsStream<IO> {
     pub(crate) io: IO,
@@ -24,6 +24,7 @@ pub(crate) enum MidHandshake<IO> {
     End,
 }
 
+// TODO unexpose, maybe without ServerSession?
 impl<IO> TlsStream<IO> {
     #[inline]
     pub fn get_ref(&self) -> (&IO, &ServerSession) {
@@ -53,7 +54,7 @@ where
 
         if let MidHandshake::Handshaking(stream) = this {
             let eof = !stream.state.readable();
-            let (io, session) = stream.get_mut();
+            let (io, session) = (&mut stream.io, &mut stream.session);
             let mut stream = Stream::new(io, session).set_eof(eof);
 
             if stream.session.is_handshaking() {

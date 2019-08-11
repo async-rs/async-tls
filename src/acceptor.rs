@@ -12,22 +12,26 @@ use std::io;
 /// The TLS accepting part. The acceptor drives
 /// the server side of the TLS handshake process. It works
 /// on any asynchronous stream.
-/// 
+///
 /// It provides a simple interface (`accept`), returning a future
 /// that will resolve when the handshake process completed. On
 /// success, it will hand you an async `TLSStream`.
-/// 
+///
 /// ## Example
-/// 
-/// ```rust
-/// let mut stream = acceptor.accept(stream).await?;
-/// ```
+///
+/// See /examples/server for an example.
 #[derive(Clone)]
 pub struct TlsAcceptor {
     inner: Arc<ServerConfig>,
 }
 
 impl TlsAcceptor {
+    /// Accept a client connections. `stream` can be any type implementing `AsyncRead` and `AsyncWrite`,
+    /// such as TcpStreams or Unix domain sockets.
+    ///
+    /// Otherwise, it will return a `Accept` Future, representing the Acceptance part of a
+    /// Tls handshake. It will resolve when the handshake is over.
+    #[inline]
     pub fn accept<IO>(&self, stream: IO) -> Accept<IO>
     where
         IO: AsyncRead + AsyncWrite + Unpin,
@@ -35,8 +39,8 @@ impl TlsAcceptor {
         self.accept_with(stream, |_| ())
     }
 
-    #[inline]
-    pub fn accept_with<IO, F>(&self, stream: IO, f: F) -> Accept<IO>
+    // Currently private, as exposing ServerSessions exposes rusttls
+    fn accept_with<IO, F>(&self, stream: IO, f: F) -> Accept<IO>
     where
         IO: AsyncRead + AsyncWrite + Unpin,
         F: FnOnce(&mut ServerSession),

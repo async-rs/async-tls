@@ -9,8 +9,8 @@ use std::{io, mem};
 
 use rustls::Session;
 
-/// A wrapper around an underlying raw stream which implements the TLS or SSL
-/// protocol.
+/// The client end of a TLS connection. Can be used like any other bidirectional IO stream.
+/// Wraps the underlying TCP stream.
 #[derive(Debug)]
 pub struct TlsStream<IO> {
     pub(crate) io: IO,
@@ -27,6 +27,8 @@ pub(crate) enum MidHandshake<IO> {
     EarlyData(TlsStream<IO>),
     End,
 }
+
+// TODO unexpose, maybe without Client?
 
 impl<IO> TlsStream<IO> {
     #[inline]

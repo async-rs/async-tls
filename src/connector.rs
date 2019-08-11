@@ -17,12 +17,26 @@ use webpki::DNSNameRef;
 /// 
 /// It provides a simple interface (`connect`), returning a future
 /// that will resolve when the handshake process completed. On
-/// success, it will hand you an async `TLSStream`.
+/// success, it will hand you an async `TlsStream`.
 /// 
+/// To create a `TlsConnector` with a non-default configuation, create
+/// a `rusttls::ClientConfig` and call `.into()` on it.
+///
 /// ## Example
 /// 
 /// ```rust
-/// let mut stream = acceptor.accept(stream).await?;
+/// #![feature(async_await)]
+///
+/// use async_tls::TlsConnector;
+///
+/// async_std::task::block_on(async {
+///     let connector = TlsConnector::default();
+///     let tcp_stream = async_std::net::TcpStream::connect("example.com").await?;
+///     let handshake = connector.connect("example.com", tcp_stream)?;
+///     let encrypted_stream = handshake.await?;
+///
+///     Ok(()) as async_std::io::Result<()>
+/// });
 /// ```
 #[derive(Clone)]
 pub struct TlsConnector {
@@ -52,20 +66,29 @@ impl Default for TlsConnector {
 }
 
 impl TlsConnector {
+    /// Create a new TlsConnector with default configuration.
+    /// 
+    /// This is the same as calling `TlsConnector::default()`.
     pub fn new() -> Self {
         Default::default()
     }
 
     /// Enable 0-RTT.
     ///
-    /// Note that you want to use 0-RTT.
-    /// You must set `enable_early_data` to `true` in `ClientConfig`.
+    /// You must also set `enable_early_data` to `true` in `ClientConfig`.
     #[cfg(feature = "early-data")]
     pub fn early_data(mut self, flag: bool) -> TlsConnector {
         self.early_data = flag;
         self
     }
 
+    /// Connect to a server. `stream` can be any type implementing `AsyncRead` and `AsyncWrite`,
+    /// such as TcpStreams or Unix domain sockets.
+    ///
+    /// The function will return an error if the domain is not of valid format.
+    /// Otherwise, it will return a `Connect` Future, representing the connecting part of a
+    /// Tls handshake. It will resolve when the handshake is over.
+    #[inline]
     pub fn connect<'a, IO>(&self, domain: impl AsRef<str>, stream: IO) -> io::Result<Connect<IO>>
     where
         IO: AsyncRead + AsyncWrite + Unpin,
@@ -73,8 +96,9 @@ impl TlsConnector {
         self.connect_with(domain, stream, |_| ())
     }
 
-    #[inline]
-    pub fn connect_with<'a, IO, F>(
+    // NOTE: Currently private, exposing ClientSession exposes rusttls
+    // Early data should be exposed differently
+    fn connect_with<'a, IO, F>(
         &self,
         domain: impl AsRef<str>,
         stream: IO,
