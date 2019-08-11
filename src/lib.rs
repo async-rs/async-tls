@@ -1,6 +1,6 @@
-//! Asynchronous TLS/SSL streams for Tokio using [Rustls](https://github.com/ctz/rustls).
+//! Asynchronous TLS/SSL streams for async-std and AsyncRead/AsyncWrite sockets using [Rustls](https://github.com/ctz/rustls).
 
-#![cfg_attr(test, feature(async_await))]
+#![feature(async_await)]
 
 pub mod client;
 mod common;
