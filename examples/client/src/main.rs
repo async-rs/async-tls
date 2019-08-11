@@ -34,11 +34,7 @@ fn main() -> io::Result<()> {
         .ok_or_else(|| io::Error::from(io::ErrorKind::NotFound))?;
 
     // If no domain was passed, the host is also the domain to connect to
-    let domain_option = options.domain.unwrap_or(options.host);
-    // Use webpki::DNSNameRef to validate the domain for correctness
-    let domain = DNSNameRef::try_from_ascii_str(&domain_option)
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid dnsname"))?
-            .to_owned();
+    let domain = options.domain.unwrap_or(options.host);
 
     // Create a bare bones HTTP GET request
     let http_request = format!("GET / HTTP/1.0\r\nHost: {}\r\n\r\n", domain_option);
@@ -52,19 +48,20 @@ fn main() -> io::Result<()> {
         let tcp_stream = TcpStream::connect(&addr).await?;
 
         // Use the connector to start the handshake process.
-        // This might fail early if you pass an invalid domain
-        // (Which we already checked)
-        // This consumes the TCP stream.
-        let handshake = connector.connect(&domain, tcp_stream)?;
+        // This might fail early if you pass an invalid domain,
+        // which is why we use `?`.
+        // This consumes the TCP stream to ensure you are not reusing it.
+        let handshake = connector.connect(&domain_option, tcp_stream)?;
         // Awaiting the handshake gives you an encrypted
-        // stream back which you can use like any other
-        let tls_stream = handshake.await?;
+        // stream back which you can use like any other.
+        let mut tls_stream = handshake.await?;
+
         // We write our crafted HTTP request to it
         tls_stream.write_all(http_request.as_bytes()).await?;
 
-        // And dump the whole thing to stdio
+        // And read it all to stdout
         let mut stdout = io::stdout();
-        io::copy(&mut stream, &mut stdout).await?;
+        io::copy(&mut tls_stream, &mut stdout).await?;
 
         // Voila, we're done here!
         Ok(())
