@@ -7,7 +7,6 @@ use async_tls::TlsConnector;
 use futures::io::AsyncWriteExt;
 use std::net::ToSocketAddrs;
 use structopt::StructOpt;
-use webpki::DNSNameRef;
 
 #[derive(StructOpt)]
 struct Options {
@@ -37,7 +36,7 @@ fn main() -> io::Result<()> {
     let domain = options.domain.unwrap_or(options.host);
 
     // Create a bare bones HTTP GET request
-    let http_request = format!("GET / HTTP/1.0\r\nHost: {}\r\n\r\n", domain_option);
+    let http_request = format!("GET / HTTP/1.0\r\nHost: {}\r\n\r\n", domain);
 
     // Create default connector comes preconfigured with all you need to safely connect
     // to remote servers!
@@ -51,7 +50,7 @@ fn main() -> io::Result<()> {
         // This might fail early if you pass an invalid domain,
         // which is why we use `?`.
         // This consumes the TCP stream to ensure you are not reusing it.
-        let handshake = connector.connect(&domain_option, tcp_stream)?;
+        let handshake = connector.connect(&domain, tcp_stream)?;
         // Awaiting the handshake gives you an encrypted
         // stream back which you can use like any other.
         let mut tls_stream = handshake.await?;

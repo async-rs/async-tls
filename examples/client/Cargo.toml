@@ -9,4 +9,3 @@ futures-preview = "0.3.0-alpha.17"
 async-std = { path = "../../../async-std" }
 structopt = "0.2"
 async-tls = { path = "../.." }
-webpki = "0.21.0"
