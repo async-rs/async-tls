@@ -38,6 +38,11 @@ cd examples/server
 cargo run -- 127.0.0.1:8000 --cert mycert.der --key mykey.der
 ```
 
+## Safety
+
+This crate uses ``#![deny(unsafe_code)]`` to ensure everything is implemented in
+100% Safe Rust.
+
 ### License & Origin
 
 This project is licensed under either of
