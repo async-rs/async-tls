@@ -28,21 +28,21 @@ pub(crate) enum MidHandshake<IO> {
     End,
 }
 
-// TODO unexpose, maybe without Client?
+// TODO unhide, maybe without ClientSession?
 
 impl<IO> TlsStream<IO> {
     #[inline]
-    pub fn get_ref(&self) -> (&IO, &ClientSession) {
+    fn get_ref(&self) -> (&IO, &ClientSession) {
         (&self.io, &self.session)
     }
 
     #[inline]
-    pub fn get_mut(&mut self) -> (&mut IO, &mut ClientSession) {
+    fn get_mut(&mut self) -> (&mut IO, &mut ClientSession) {
         (&mut self.io, &mut self.session)
     }
 
     #[inline]
-    pub fn into_inner(self) -> (IO, ClientSession) {
+    fn into_inner(self) -> (IO, ClientSession) {
         (self.io, self.session)
     }
 }
