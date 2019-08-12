@@ -16,7 +16,6 @@ travis-ci = { repository = "async-std/async-tls" }
 appveyor = { repository = "async-std/async-tls" }
 
 [dependencies]
-smallvec = "0.6"
 futures-preview = "0.3.0-alpha.17"
 rustls = "0.16"
 webpki = "0.21"
