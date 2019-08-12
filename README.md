@@ -15,7 +15,8 @@ use async_std::net::TcpStream;
 
 let tcp_stream = TcpStream::connect("rust-lang.org:443");
 let connector = TlsConnector::default();
-let tls_stream = connector::connect("www.rust-lang.org")?.await?;
+let handshake = connector::connect("www.rust-lang.org")?;
+let mut tls_stream = handshake.await?;
 
 // ...
 ```

@@ -7,7 +7,6 @@ use async_tls::TlsConnector;
 use futures::io::AsyncWriteExt;
 use std::net::ToSocketAddrs;
 use structopt::StructOpt;
-
 #[derive(StructOpt)]
 struct Options {
     /// The host to connect to
