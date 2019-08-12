@@ -1,10 +1,11 @@
 #![feature(async_await)]
 
 use async_std::io;
+use async_std::io::Write;
 use async_std::net::{TcpListener, TcpStream};
+use async_std::stream::Stream;
 use async_std::task;
 use async_tls::TlsAcceptor;
-use futures::prelude::*;
 use rustls::internal::pemfile::{certs, rsa_private_keys};
 use rustls::{Certificate, NoClientAuth, PrivateKey, ServerConfig};
 use std::fs::File;

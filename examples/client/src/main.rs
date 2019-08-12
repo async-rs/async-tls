@@ -1,12 +1,13 @@
 #![feature(async_await)]
 
 use async_std::io;
+use async_std::io::Write;
 use async_std::net::TcpStream;
 use async_std::task;
 use async_tls::TlsConnector;
-use futures::io::AsyncWriteExt;
 use std::net::ToSocketAddrs;
 use structopt::StructOpt;
+
 #[derive(StructOpt)]
 struct Options {
     /// The host to connect to
