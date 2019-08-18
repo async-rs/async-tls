@@ -36,8 +36,16 @@ See [examples/server](examples/server/src/main.rs). You can run it with:
 
 ```sh
 cd examples/server
-cargo run -- 127.0.0.1:8000 --cert mycert.der --key mykey.der
+cargo run -- 127.0.0.1:8080 --cert ../../tests/end.cert --key ../../tests/end.rsa 
 ```
+
+and point the client at it with:
+
+```sh
+cd examples/client
+cargo run -- 127.0.0.1 --port 8080 --domain localhost --cafile ../../tests/end.chain```
+
+**NOTE**: Don't ever use those certificate files anywhere but for testing!
 
 ## Safety
 

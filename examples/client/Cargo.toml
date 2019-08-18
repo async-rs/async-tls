@@ -5,6 +5,7 @@ authors = ["quininer <quininer@live.com>"]
 edition = "2018"
 
 [dependencies]
-async-std = { path = "../../../async-std" }
 structopt = "0.2"
+rustls    = "0.16"
+async-std = "0.99"
 async-tls = { path = "../.." }

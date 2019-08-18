@@ -5,7 +5,12 @@ use async_std::io::Write;
 use async_std::net::TcpStream;
 use async_std::task;
 use async_tls::TlsConnector;
+use rustls::ClientConfig;
+use std::sync::Arc;
+use std::fs::File;
+use std::io::BufReader;
 use std::net::ToSocketAddrs;
+use std::path::{Path, PathBuf};
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -20,6 +25,11 @@ struct Options {
     /// The domain to connect to. This may be different from the host!
     #[structopt(short = "d", long = "domain")]
     domain: Option<String>,
+
+    /// A file with a certificate authority chain, allows to connect
+    /// to certificate authories not included in the default set
+    #[structopt(short = "c", long = "cafile", parse(from_os_str))]
+    cafile: Option<PathBuf>,
 }
 
 fn main() -> io::Result<()> {
@@ -40,7 +50,11 @@ fn main() -> io::Result<()> {
 
     // Create default connector comes preconfigured with all you need to safely connect
     // to remote servers!
-    let connector = TlsConnector::default();
+    let connector = if let Some(cafile) = &options.cafile {
+        connector_for_ca_file(cafile)?
+    } else {
+        TlsConnector::default()
+    };
 
     task::block_on(async {
         // Open a normal TCP connection, just as you are used to
@@ -65,4 +79,14 @@ fn main() -> io::Result<()> {
         // Voila, we're done here!
         Ok(())
     })
+}
+
+fn connector_for_ca_file(cafile: &Path) -> io::Result<TlsConnector> {
+    let mut config = ClientConfig::new();
+    let mut pem = BufReader::new(File::open(cafile)?);
+    config
+        .root_store
+        .add_pem_file(&mut pem)
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid cert"))?;
+    Ok(TlsConnector::from(Arc::new(config)))
 }

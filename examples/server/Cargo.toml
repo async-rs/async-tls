@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 structopt = "0.2"
+async-std = "0.99"
 async-tls = { path = "../.." }
-async-std = { path = "../../../async-std" }
 rustls = "0.16"
 webpki = "0.21"
