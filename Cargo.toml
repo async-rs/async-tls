@@ -26,4 +26,4 @@ early-data = []
 
 [dev-dependencies]
 lazy_static = "1"
-async-std = { path = "../async-std" }
+async-std = "0.99"
