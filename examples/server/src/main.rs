@@ -8,8 +8,8 @@ use async_std::task;
 use async_tls::TlsAcceptor;
 use rustls::internal::pemfile::{certs, rsa_private_keys};
 use rustls::{Certificate, NoClientAuth, PrivateKey, ServerConfig};
-use std::fs::File;
 
+use std::fs::File;
 use std::io::BufReader;
 use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
@@ -98,7 +98,7 @@ fn main() -> io::Result<()> {
     let config = load_config(&options)?;
 
     // We create one TLSAcceptor around a shared configuration.
-    // Cloning the acceptor will not clone the configuation.
+    // Cloning the acceptor will not clone the configuration.
     let acceptor = TlsAcceptor::from(Arc::new(config));
 
     // We start a classic TCP server, passing all connections to the

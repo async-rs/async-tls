@@ -1,4 +1,4 @@
-use crate::common::Stream;
+use crate::rusttls::stream::Stream;
 use crate::common::tls_state::TlsState;
 use futures::io::{AsyncRead, AsyncWrite};
 use rustls::ClientSession;
@@ -28,25 +28,6 @@ pub(crate) enum MidHandshake<IO> {
     End,
 }
 
-// TODO unhide, maybe without ClientSession?
-
-impl<IO> TlsStream<IO> {
-    #[inline]
-    fn get_ref(&self) -> (&IO, &ClientSession) {
-        (&self.io, &self.session)
-    }
-
-    #[inline]
-    fn get_mut(&mut self) -> (&mut IO, &mut ClientSession) {
-        (&mut self.io, &mut self.session)
-    }
-
-    #[inline]
-    fn into_inner(self) -> (IO, ClientSession) {
-        (self.io, self.session)
-    }
-}
-
 impl<IO> Future for MidHandshake<IO>
 where
     IO: AsyncRead + AsyncWrite + Unpin,
@@ -59,7 +40,7 @@ where
 
         if let MidHandshake::Handshaking(stream) = this {
             let eof = !stream.state.readable();
-            let (io, session) = stream.get_mut();
+            let (io, session) = (&mut stream.io, &mut stream.session);
             let mut stream = Stream::new(io, session).set_eof(eof);
 
             if stream.session.is_handshaking() {

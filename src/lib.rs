@@ -4,8 +4,9 @@
 #![deny(unsafe_code)]
 
 pub mod client;
-mod common;
 pub mod server;
+mod common;
+mod rusttls;
 mod connector;
 mod acceptor;
 

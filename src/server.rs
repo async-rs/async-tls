@@ -1,4 +1,4 @@
-use crate::common::Stream;
+use crate::rusttls::stream::Stream;
 use crate::common::tls_state::TlsState;
 
 use futures::io::{AsyncRead, AsyncWrite};
@@ -22,24 +22,6 @@ pub struct TlsStream<IO> {
 pub(crate) enum MidHandshake<IO> {
     Handshaking(TlsStream<IO>),
     End,
-}
-
-// TODO unhide, maybe without ServerSession?
-impl<IO> TlsStream<IO> {
-    #[inline]
-    fn get_ref(&self) -> (&IO, &ServerSession) {
-        (&self.io, &self.session)
-    }
-
-    #[inline]
-    fn get_mut(&mut self) -> (&mut IO, &mut ServerSession) {
-        (&mut self.io, &mut self.session)
-    }
-
-    #[inline]
-    fn into_inner(self) -> (IO, ServerSession) {
-        (self.io, self.session)
-    }
 }
 
 impl<IO> Future for MidHandshake<IO>
