@@ -43,7 +43,8 @@ and point the client at it with:
 
 ```sh
 cd examples/client
-cargo run -- 127.0.0.1 --port 8080 --domain localhost --cafile ../../tests/end.chain```
+cargo run -- 127.0.0.1 --port 8080 --domain localhost --cafile ../../tests/end.chain
+```
 
 **NOTE**: Don't ever use those certificate files anywhere but for testing!
 
