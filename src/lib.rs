@@ -2,12 +2,16 @@
 
 #![deny(unsafe_code)]
 
-pub mod client;
-pub mod server;
-mod common;
-mod rusttls;
-mod connector;
 mod acceptor;
+pub mod client;
+mod common;
+mod connector;
+mod rusttls;
+pub mod server;
 
-pub use acceptor::TlsAcceptor as TlsAcceptor;
-pub use connector::TlsConnector as TlsConnector;
+pub use acceptor::TlsAcceptor;
+pub use connector::TlsConnector;
+
+#[cfg(feature = "early-data")]
+#[cfg(test)]
+mod test_0rtt;

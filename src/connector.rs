@@ -3,27 +3,27 @@ use crate::common::tls_state::TlsState;
 use crate::client;
 
 use futures::io::{AsyncRead, AsyncWrite};
-use rustls::{ClientConfig,ClientSession};
+use rustls::{ClientConfig, ClientSession};
 use std::future::Future;
+use std::io;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
-use std::io;
 use webpki::DNSNameRef;
 
 /// The TLS connecting part. The acceptor drives
 /// the client side of the TLS handshake process. It works
 /// on any asynchronous stream.
-/// 
+///
 /// It provides a simple interface (`connect`), returning a future
 /// that will resolve when the handshake process completed. On
 /// success, it will hand you an async `TlsStream`.
-/// 
+///
 /// To create a `TlsConnector` with a non-default configuation, create
 /// a `rusttls::ClientConfig` and call `.into()` on it.
 ///
 /// ## Example
-/// 
+///
 /// ```rust
 /// #![feature(async_await)]
 ///
@@ -67,7 +67,7 @@ impl Default for TlsConnector {
 
 impl TlsConnector {
     /// Create a new TlsConnector with default configuration.
-    /// 
+    ///
     /// This is the same as calling `TlsConnector::default()`.
     pub fn new() -> Self {
         Default::default()
@@ -157,7 +157,3 @@ impl<IO: AsyncRead + AsyncWrite + Unpin> Future for Connect<IO> {
         Pin::new(&mut self.0).poll(cx)
     }
 }
-
-#[cfg(feature = "early-data")]
-#[cfg(test)]
-mod test_0rtt;

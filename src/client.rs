@@ -1,5 +1,5 @@
-use crate::rusttls::stream::Stream;
 use crate::common::tls_state::TlsState;
+use crate::rusttls::stream::Stream;
 use futures::io::{AsyncRead, AsyncWrite};
 use rustls::ClientSession;
 use std::future::Future;
