@@ -4,10 +4,10 @@ use crate::server;
 use futures::io::{AsyncRead, AsyncWrite};
 use rustls::{ServerConfig, ServerSession};
 use std::future::Future;
+use std::io;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
-use std::io;
 
 /// The TLS accepting part. The acceptor drives
 /// the server side of the TLS handshake process. It works

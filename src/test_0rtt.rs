@@ -1,11 +1,11 @@
 use crate::{client::TlsStream, TlsConnector};
+use async_std::net::TcpStream;
+use async_std::sync::Arc;
 use futures::executor;
 use futures::prelude::*;
-use romio::tcp::TcpStream;
 use rustls::ClientConfig;
 use std::io;
 use std::net::ToSocketAddrs;
-use std::sync::Arc;
 
 async fn get(
     config: Arc<ClientConfig>,
@@ -16,11 +16,10 @@ async fn get(
     let input = format!("GET / HTTP/1.0\r\nHost: {}\r\n\r\n", domain);
 
     let addr = (domain, 443).to_socket_addrs()?.next().unwrap();
-    let domain = webpki::DNSNameRef::try_from_ascii_str(&domain).unwrap();
     let mut buf = Vec::new();
 
     let stream = TcpStream::connect(&addr).await?;
-    let mut stream = connector.connect(domain, stream).await?;
+    let mut stream = connector.connect(domain, stream)?.await?;
     stream.write_all(input.as_bytes()).await?;
     stream.read_to_end(&mut buf).await?;
 
