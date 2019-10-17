@@ -1,7 +1,6 @@
 use async_std::io;
-use async_std::io::Write;
 use async_std::net::{TcpListener, TcpStream};
-use async_std::stream::Stream;
+use async_std::prelude::*;
 use async_std::task;
 use async_tls::TlsAcceptor;
 use rustls::internal::pemfile::{certs, rsa_private_keys};
@@ -41,7 +40,7 @@ fn load_keys(path: &Path) -> io::Result<Vec<PrivateKey>> {
 
 /// Configure the server using rusttls
 /// See https://docs.rs/rustls/0.16.0/rustls/struct.ServerConfig.html for details
-/// 
+///
 /// A TLS server needs a certificate and a fitting private key
 fn load_config(options: &Options) -> io::Result<ServerConfig> {
     let certs = load_certs(&options.cert)?;
