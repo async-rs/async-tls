@@ -1,16 +1,16 @@
-#![feature(async_await)]
-
 use async_std::io;
 use async_std::io::Write;
 use async_std::net::TcpStream;
 use async_std::task;
 use async_tls::TlsConnector;
+
 use rustls::ClientConfig;
-use std::sync::Arc;
-use std::fs::File;
-use std::io::BufReader;
+
+use std::io::Cursor;
 use std::net::ToSocketAddrs;
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
+
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -48,15 +48,17 @@ fn main() -> io::Result<()> {
     // Create a bare bones HTTP GET request
     let http_request = format!("GET / HTTP/1.0\r\nHost: {}\r\n\r\n", domain);
 
-    // Create default connector comes preconfigured with all you need to safely connect
-    // to remote servers!
-    let connector = if let Some(cafile) = &options.cafile {
-        connector_for_ca_file(cafile)?
-    } else {
-        TlsConnector::default()
-    };
+    let cafile = &options.cafile;
 
-    task::block_on(async {
+    task::block_on(async move {
+        // Create default connector comes preconfigured with all you need to safely connect
+        // to remote servers!
+        let connector = if let Some(cafile) = cafile {
+            connector_for_ca_file(cafile).await?
+        } else {
+            TlsConnector::default()
+        };
+
         // Open a normal TCP connection, just as you are used to
         let tcp_stream = TcpStream::connect(&addr).await?;
 
@@ -81,9 +83,10 @@ fn main() -> io::Result<()> {
     })
 }
 
-fn connector_for_ca_file(cafile: &Path) -> io::Result<TlsConnector> {
+async fn connector_for_ca_file(cafile: &Path) -> io::Result<TlsConnector> {
     let mut config = ClientConfig::new();
-    let mut pem = BufReader::new(File::open(cafile)?);
+    let file = async_std::fs::read(cafile).await?;
+    let mut pem = Cursor::new(file);
     config
         .root_store
         .add_pem_file(&mut pem)

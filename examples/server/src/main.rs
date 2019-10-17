@@ -1,5 +1,3 @@
-#![feature(async_await)]
-
 use async_std::io;
 use async_std::io::Write;
 use async_std::net::{TcpListener, TcpStream};

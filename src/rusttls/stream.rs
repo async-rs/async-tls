@@ -258,4 +258,5 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> AsyncWrite for Stream<'
 }
 
 #[cfg(test)]
+#[path="test_stream.rs"]
 mod test_stream;

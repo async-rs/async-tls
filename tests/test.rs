@@ -1,5 +1,3 @@
-#![feature(async_await)]
-
 use async_std::net::{TcpListener, TcpStream};
 use async_tls::{TlsAcceptor, TlsConnector};
 use futures::executor;

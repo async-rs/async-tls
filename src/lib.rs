@@ -1,6 +1,5 @@
-//! Asynchronous TLS/SSL streams for async-std and AsyncRead/AsyncWrite sockets using [rustlsz](https://github.com/ctz/rustls).
+//! Asynchronous TLS/SSL streams for async-std and AsyncRead/AsyncWrite sockets using [rustls](https://github.com/ctz/rustls).
 
-#![feature(async_await)]
 #![deny(unsafe_code)]
 
 pub mod client;
