@@ -26,4 +26,5 @@ early-data = []
 
 [dev-dependencies]
 lazy_static = "1"
-async-std = "0.99"
+futures-util = "0.3"
+async-std = { version = "0.99", features = ["unstable"] }

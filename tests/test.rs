@@ -1,16 +1,15 @@
 use async_std::net::{TcpListener, TcpStream};
+use async_std::task;
+use async_std::io;
+use async_std::sync::channel;
+use async_std::prelude::*;
 use async_tls::{TlsAcceptor, TlsConnector};
-use futures::executor;
-use futures::prelude::*;
-use futures::task::SpawnExt;
 use lazy_static::lazy_static;
 use rustls::internal::pemfile::{certs, rsa_private_keys};
 use rustls::{ClientConfig, ServerConfig};
-use std::io::{BufReader, Cursor};
 use std::net::SocketAddr;
-use std::sync::mpsc::channel;
+use std::io::{BufReader, Cursor};
 use std::sync::Arc;
-use std::{io, thread};
 
 const CERT: &str = include_str!("end.cert");
 const CHAIN: &str = include_str!("end.chain");
@@ -27,38 +26,32 @@ lazy_static! {
             .expect("invalid key or certificate");
         let acceptor = TlsAcceptor::from(Arc::new(config));
 
-        let (send, recv) = channel();
+        let (send, recv) = channel(1);
 
-        thread::spawn(move || {
-            let done = async {
-                let addr = SocketAddr::from(([127, 0, 0, 1], 0));
-                let mut pool = executor::ThreadPool::new()?;
-                let listener = TcpListener::bind(&addr).await?;
+        task::spawn(async move {
+            let addr = SocketAddr::from(([127, 0, 0, 1], 0));
+            let listener = TcpListener::bind(&addr).await?;
 
-                send.send(listener.local_addr()?).unwrap();
+            send.send(listener.local_addr()?).await;
 
-                let mut incoming = listener.incoming();
-                while let Some(stream) = incoming.next().await {
-                    let acceptor = acceptor.clone();
-                    pool.spawn(
-                        async move {
-                            let stream = acceptor.accept(stream?).await?;
-                            let (reader, mut write) = stream.split();
-                            reader.copy_into(&mut write).await?;
-                            Ok(()) as io::Result<()>
-                        }
-                            .unwrap_or_else(|err| eprintln!("{:?}", err)),
-                    )
-                    .unwrap();
-                }
+            let mut incoming = listener.incoming();
+            while let Some(stream) = incoming.next().await {
+                let acceptor = acceptor.clone();
+                task::spawn(async move {
+                    use futures_util::io::AsyncReadExt;
+                    let stream = acceptor.accept(stream?).await?;
+                    let (mut reader, mut writer) = stream.split();
+                    io::copy(&mut reader, &mut writer).await?;
+                    Ok(()) as io::Result<()>
+                });
+            }
 
-                Ok(()) as io::Result<()>
-            };
-
-            executor::block_on(done).unwrap();
+            Ok(()) as io::Result<()>
         });
 
-        let addr = recv.recv().unwrap();
+        let addr = task::block_on(async move {
+            recv.recv().await.unwrap()
+        });
         (addr, "localhost", CHAIN)
     };
 }
@@ -80,7 +73,7 @@ async fn start_client(addr: SocketAddr, domain: &str, config: Arc<ClientConfig>)
 
     assert_eq!(buf, FILE);
 
-    stream.close().await?;
+    stream.flush().await?;
     Ok(())
 }
 
@@ -93,7 +86,7 @@ fn pass() {
     config.root_store.add_pem_file(&mut chain).unwrap();
     let config = Arc::new(config);
 
-    executor::block_on(start_client(addr.clone(), domain, config.clone())).unwrap();
+    task::block_on(start_client(addr.clone(), domain, config.clone())).unwrap();
 }
 
 #[test]
@@ -106,5 +99,5 @@ fn fail() {
     let config = Arc::new(config);
 
     assert_ne!(domain, &"google.com");
-    assert!(executor::block_on(start_client(addr.clone(), "google.com", config)).is_err());
+    assert!(task::block_on(start_client(addr.clone(), "google.com", config)).is_err());
 }
