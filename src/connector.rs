@@ -25,8 +25,6 @@ use webpki::DNSNameRef;
 /// ## Example
 ///
 /// ```rust
-/// #![feature(async_await)]
-///
 /// use async_tls::TlsConnector;
 ///
 /// async_std::task::block_on(async {

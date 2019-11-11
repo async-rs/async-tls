@@ -28,6 +28,18 @@ pub(crate) enum MidHandshake<IO> {
     End,
 }
 
+impl<IO> TlsStream<IO> {
+    /// Returns a reference to the underlying IO stream.
+    pub fn get_ref(&self) -> &IO {
+        &self.io
+    }
+
+    /// Returns a mutuable reference to the underlying IO stream.
+    pub fn get_mut(&mut self) -> &mut IO {
+        &mut self.io
+    }
+}
+
 impl<IO> Future for MidHandshake<IO>
 where
     IO: AsyncRead + AsyncWrite + Unpin,
