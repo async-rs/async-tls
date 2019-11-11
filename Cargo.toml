@@ -1,6 +1,6 @@
 [package]
 name = "async-tls"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["The async-rs developers", "Florian Gilcher <florian.gilcher@ferrous-systems.com>", "dignifiedquire <dignifiedquire@gmail.com>", "quininer kel <quininer@live.com>"]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/async-std/async-tls"
