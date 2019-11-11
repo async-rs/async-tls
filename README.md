@@ -1,7 +1,7 @@
 <h1 align="center">async-tls</h1>
 <div align="center">
  <strong>
-   Async TLS/SSL streams using [Rustls](https://github.com/ctz/rustls).
+   Async TLS/SSL streams using <a href="https://github.com/ctz/rustls">Rustls</a>.
  </strong>
 </div>
 
