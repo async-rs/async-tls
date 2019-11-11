@@ -1,9 +1,52 @@
-# async-tls
-[![license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/async-std/async-tls/blob/master/LICENSE-MIT)
-[![license](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/async-std/async-tls/blob/master/LICENSE-APACHE)
-[![docs.rs](https://docs.rs/async-tls/badge.svg)](https://docs.rs/async-tls/)
+<h1 align="center">async-tls</h1>
+<div align="center">
+ <strong>
+   Async TLS/SSL streams using [Rustls](https://github.com/ctz/rustls).
+ </strong>
+</div>
 
-Asynchronous TLS/SSL streams using [Rustls](https://github.com/ctz/rustls).
+<br />
+
+<div align="center">
+  <!-- Crates version -->
+  <a href="https://crates.io/crates/async-tls">
+    <img src="https://img.shields.io/crates/v/async-tls.svg?style=flat-square"
+    alt="Crates.io version" />
+  </a>
+  <!-- Downloads -->
+  <a href="https://crates.io/crates/async-tls">
+    <img src="https://img.shields.io/crates/d/async-tls.svg?style=flat-square"
+      alt="Download" />
+  </a>
+  <!-- docs.rs docs -->
+  <a href="https://docs.rs/async-tls">
+    <img src="https://img.shields.io/badge/docs-latest-blue.svg?style=flat-square"
+      alt="docs.rs docs" />
+  </a>
+
+  <a href="https://discord.gg/JvZeVNe">
+    <img src="https://img.shields.io/discord/598880689856970762.svg?logo=discord&style=flat-square"
+      alt="chat" />
+  </a>
+</div>
+
+<div align="center">
+  <h3>
+    <a href="https://docs.rs/async-tls">
+      API Docs
+    </a>
+    <span> | </span>
+    <a href="https://github.com/async-rs/async-tls/releases">
+      Releases
+    </a>
+    <span> | </span>
+    <a href="https://async.rs/contribute">
+      Contributing
+    </a>
+  </h3>
+</div>
+
+<br/>
 
 ### Simple Client
 
@@ -36,7 +79,7 @@ See [examples/server](examples/server/src/main.rs). You can run it with:
 
 ```sh
 cd examples/server
-cargo run -- 127.0.0.1:8080 --cert ../../tests/end.cert --key ../../tests/end.rsa 
+cargo run -- 127.0.0.1:8080 --cert ../../tests/end.cert --key ../../tests/end.rsa
 ```
 
 and point the client at it with:
