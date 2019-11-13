@@ -63,13 +63,10 @@ fn main() -> io::Result<()> {
         let tcp_stream = TcpStream::connect(&addr).await?;
 
         // Use the connector to start the handshake process.
-        // This might fail early if you pass an invalid domain,
-        // which is why we use `?`.
         // This consumes the TCP stream to ensure you are not reusing it.
-        let handshake = connector.connect(&domain, tcp_stream)?;
         // Awaiting the handshake gives you an encrypted
         // stream back which you can use like any other.
-        let mut tls_stream = handshake.await?;
+        let mut tls_stream = connector.connect(&domain, tcp_stream).await?;
 
         // We write our crafted HTTP request to it
         tls_stream.write_all(http_request.as_bytes()).await?;

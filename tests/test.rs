@@ -67,7 +67,7 @@ async fn start_client(addr: SocketAddr, domain: &str, config: Arc<ClientConfig>)
     let mut buf = vec![0; FILE.len()];
 
     let stream = TcpStream::connect(&addr).await?;
-    let mut stream = config.connect(domain, stream)?.await?;
+    let mut stream = config.connect(domain, stream).await?;
     stream.write_all(FILE).await?;
     stream.read_exact(&mut buf).await?;
 
