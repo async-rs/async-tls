@@ -19,7 +19,7 @@ async fn get(
     let mut buf = Vec::new();
 
     let stream = TcpStream::connect(&addr).await?;
-    let mut stream = connector.connect(domain, stream)?.await?;
+    let mut stream = connector.connect(domain, stream).await?;
     stream.write_all(input.as_bytes()).await?;
     stream.read_to_end(&mut buf).await?;
 

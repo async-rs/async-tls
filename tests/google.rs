@@ -9,7 +9,7 @@ fn fetch_google() -> std::io::Result<()> {
         let connector = TlsConnector::default();
 
         let stream = TcpStream::connect("google.com:443").await?;
-        let mut stream = connector.connect("google.com", stream)?.await?;
+        let mut stream = connector.connect("google.com", stream).await?;
 
         stream.write_all(b"GET / HTTP/1.0\r\n\r\n").await?;
         let mut res = vec![];

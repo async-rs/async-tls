@@ -30,8 +30,7 @@ use webpki::DNSNameRef;
 /// async_std::task::block_on(async {
 ///     let connector = TlsConnector::default();
 ///     let tcp_stream = async_std::net::TcpStream::connect("example.com").await?;
-///     let handshake = connector.connect("example.com", tcp_stream)?;
-///     let encrypted_stream = handshake.await?;
+///     let encrypted_stream = connector.connect("example.com", tcp_stream).await?;
 ///
 ///     Ok(()) as async_std::io::Result<()>
 /// });
@@ -83,11 +82,10 @@ impl TlsConnector {
     /// Connect to a server. `stream` can be any type implementing `AsyncRead` and `AsyncWrite`,
     /// such as TcpStreams or Unix domain sockets.
     ///
-    /// The function will return an error if the domain is not of valid format.
-    /// Otherwise, it will return a `Connect` Future, representing the connecting part of a
-    /// Tls handshake. It will resolve when the handshake is over.
+    /// The function will return a `Connect` Future, representing the connecting part of a Tls
+    /// handshake. It will resolve when the handshake is over.
     #[inline]
-    pub fn connect<'a, IO>(&self, domain: impl AsRef<str>, stream: IO) -> io::Result<Connect<IO>>
+    pub fn connect<'a, IO>(&self, domain: impl AsRef<str>, stream: IO) -> Connect<IO>
     where
         IO: AsyncRead + AsyncWrite + Unpin,
     {
@@ -96,24 +94,27 @@ impl TlsConnector {
 
     // NOTE: Currently private, exposing ClientSession exposes rusttls
     // Early data should be exposed differently
-    fn connect_with<'a, IO, F>(
-        &self,
-        domain: impl AsRef<str>,
-        stream: IO,
-        f: F,
-    ) -> io::Result<Connect<IO>>
+    fn connect_with<'a, IO, F>(&self, domain: impl AsRef<str>, stream: IO, f: F) -> Connect<IO>
     where
         IO: AsyncRead + AsyncWrite + Unpin,
         F: FnOnce(&mut ClientSession),
     {
-        let domain = DNSNameRef::try_from_ascii_str(domain.as_ref())
-            .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid domain"))?;
+        let domain = match DNSNameRef::try_from_ascii_str(domain.as_ref()) {
+            Ok(domain) => domain,
+            Err(_) => {
+                return Connect(ConnectInner::Error(Some(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "invalid domain",
+                ))))
+            }
+        };
+
         let mut session = ClientSession::new(&self.inner, domain);
         f(&mut session);
 
         #[cfg(not(feature = "early-data"))]
         {
-            Ok(Connect(client::MidHandshake::Handshaking(
+            Connect(ConnectInner::Handshake(client::MidHandshake::Handshaking(
                 client::TlsStream {
                     session,
                     io: stream,
@@ -124,7 +125,7 @@ impl TlsConnector {
 
         #[cfg(feature = "early-data")]
         {
-            Ok(Connect(if self.early_data {
+            Connect(ConnectInner::Handshake(if self.early_data {
                 client::MidHandshake::EarlyData(client::TlsStream {
                     session,
                     io: stream,
@@ -145,13 +146,23 @@ impl TlsConnector {
 
 /// Future returned from `TlsConnector::connect` which will resolve
 /// once the connection handshake has finished.
-pub struct Connect<IO>(client::MidHandshake<IO>);
+pub struct Connect<IO>(ConnectInner<IO>);
+
+enum ConnectInner<IO> {
+    Error(Option<io::Error>),
+    Handshake(client::MidHandshake<IO>),
+}
 
 impl<IO: AsyncRead + AsyncWrite + Unpin> Future for Connect<IO> {
     type Output = io::Result<client::TlsStream<IO>>;
 
     #[inline]
     fn poll(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<Self::Output> {
-        Pin::new(&mut self.0).poll(cx)
+        match self.0 {
+            ConnectInner::Error(ref mut err) => {
+                Poll::Ready(Err(err.take().expect("Polled twice after being Ready")))
+            }
+            ConnectInner::Handshake(ref mut handshake) => Pin::new(handshake).poll(cx),
+        }
     }
 }
