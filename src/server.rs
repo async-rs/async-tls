@@ -1,3 +1,5 @@
+//! The server end of a TLS connection.
+
 use crate::common::tls_state::TlsState;
 use crate::rusttls::stream::Stream;
 
