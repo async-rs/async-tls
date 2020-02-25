@@ -9,8 +9,8 @@ mod connector;
 mod rusttls;
 pub mod server;
 
-pub use acceptor::TlsAcceptor;
-pub use connector::TlsConnector;
+pub use acceptor::{Accept, TlsAcceptor};
+pub use connector::{Connect, TlsConnector};
 
 #[cfg(feature = "early-data")]
 #[cfg(test)]
