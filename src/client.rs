@@ -40,6 +40,10 @@ impl<IO> TlsStream<IO> {
     pub fn get_mut(&mut self) -> &mut IO {
         &mut self.io
     }
+
+    pub fn get_session_ref(&self) -> &ClientSession {
+        &self.session
+    }
 }
 
 impl<IO> Future for MidHandshake<IO>
