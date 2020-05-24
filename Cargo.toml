@@ -18,13 +18,24 @@ appveyor = { repository = "async-std/async-tls" }
 [dependencies]
 futures = "0.3.4"
 rustls = "0.17.0"
-webpki = "0.21.2"
-webpki-roots = "0.19.0"
+webpki = { version = "0.21.2", optional = true }
+webpki-roots = { version = "0.19.0", optional = true }
 
 [features]
+default = ["client", "server"]
+client = ["webpki", "webpki-roots"]
 early-data = []
+server = []
 
 [dev-dependencies]
 lazy_static = "1"
 futures-util = "0.3"
 async-std = { version = "1.0", features = ["unstable"] }
+
+[[test]]
+name = "test"
+required-features = ["client", "server"]
+
+[[test]]
+name = "google"
+required-features = ["client"]
