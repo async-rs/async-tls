@@ -4,13 +4,13 @@ use crate::common::tls_state::TlsState;
 use crate::rusttls::stream::Stream;
 
 use futures::io::{AsyncRead, AsyncWrite};
+use rustls::Certificate;
 use rustls::ServerSession;
+use rustls::Session;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::{io, mem};
-
-use rustls::Session;
 
 /// The server end of a TLS connection. Can be used like any other bidirectional IO stream.
 /// Wraps the underlying TCP stream.
@@ -19,6 +19,12 @@ pub struct TlsStream<IO> {
     pub(crate) io: IO,
     pub(crate) session: ServerSession,
     pub(crate) state: TlsState,
+}
+
+impl<IO> TlsStream<IO> {
+    pub fn peer_certificates(&self) -> Option<Vec<Certificate>> {
+        self.session.get_peer_certificates()
+    }
 }
 
 pub(crate) enum MidHandshake<IO> {
