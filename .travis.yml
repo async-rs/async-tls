@@ -13,6 +13,12 @@ matrix:
       os: osx
 
 script:
+    - |
+      if [[ "$TRAVIS_RUST_VERSION" == stable ]]
+      then
+        rustup component add rustfmt
+        cargo fmt --all -- --check
+      fi
     - cargo test
     - cargo test --features early-data
     - cd examples/server
