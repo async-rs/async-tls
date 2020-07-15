@@ -74,3 +74,9 @@ impl From<Arc<ServerConfig>> for TlsAcceptor {
         TlsAcceptor { inner }
     }
 }
+
+impl From<ServerConfig> for TlsAcceptor {
+    fn from(inner: ServerConfig) -> TlsAcceptor {
+        TlsAcceptor { inner: Arc::new(inner) }
+    }
+}

@@ -52,6 +52,16 @@ impl From<Arc<ClientConfig>> for TlsConnector {
     }
 }
 
+impl From<ClientConfig> for TlsConnector {
+    fn from(inner: ClientConfig) -> TlsConnector {
+        TlsConnector {
+            inner: Arc::new(inner),
+            #[cfg(feature = "early-data")]
+            early_data: false,
+        }
+    }
+}
+
 impl Default for TlsConnector {
     fn default() -> Self {
         let mut config = ClientConfig::new();
