@@ -48,6 +48,29 @@
 
 <br/>
 
+# Features
+
+`async-tls` can be used both in server and client programs. To save compilation times, you
+can switch off parts of this for faster compile times.
+
+To only use async-tls on a client, deactivate default features and use the "client" feature.
+
+```toml
+[dependencies.async-tls]
+version = "0.8"
+default-features = false
+features = ["client"]
+```
+
+To only use async-tls on for the server side, deactivate default features and use the "server" feature.
+
+```toml
+[dependencies.async-tls]
+version = "0.8"
+default-features = false
+features = ["server"]
+```
+
 ### Simple Client
 
 ```rust
