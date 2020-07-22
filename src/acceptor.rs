@@ -1,7 +1,7 @@
 use crate::common::tls_state::TlsState;
 use crate::server;
 
-use futures::io::{AsyncRead, AsyncWrite};
+use futures_io::{AsyncRead, AsyncWrite};
 use rustls::{ServerConfig, ServerSession};
 use std::future::Future;
 use std::io;
