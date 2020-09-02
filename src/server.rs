@@ -21,6 +21,15 @@ pub struct TlsStream<IO> {
     pub(crate) state: TlsState,
 }
 
+impl<IO> TlsStream<IO> {
+    pub fn peer_certificates(&self) -> Option<Vec<Vec<u8>>> {
+        match self.session.get_peer_certificates() {
+            Some(certs) => Some(certs.into_iter().map(|cert| cert.0).collect()),
+            None => None,
+        }
+    }
+}
+
 pub(crate) enum MidHandshake<IO> {
     Handshaking(TlsStream<IO>),
     End,
