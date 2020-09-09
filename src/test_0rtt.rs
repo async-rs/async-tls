@@ -1,8 +1,8 @@
 use crate::{client::TlsStream, TlsConnector};
 use async_std::net::TcpStream;
 use async_std::sync::Arc;
-use futures::executor;
-use futures::prelude::*;
+use futures_executor::block_on;
+use futures_util::io::{AsyncReadExt, AsyncWriteExt};
 use rustls::ClientConfig;
 use std::io;
 use std::net::ToSocketAddrs;
@@ -36,10 +36,10 @@ fn test_0rtt() {
     let config = Arc::new(config);
     let domain = "mozilla-modern.badssl.com";
 
-    let (_, output) = executor::block_on(get(config.clone(), domain, false)).unwrap();
+    let (_, output) = block_on(get(config.clone(), domain, false)).unwrap();
     assert!(output.contains("<title>mozilla-modern.badssl.com</title>"));
 
-    let (io, output) = executor::block_on(get(config.clone(), domain, true)).unwrap();
+    let (io, output) = block_on(get(config.clone(), domain, true)).unwrap();
     assert!(output.contains("<title>mozilla-modern.badssl.com</title>"));
 
     assert_eq!(io.early_data.0, 0);

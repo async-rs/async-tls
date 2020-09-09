@@ -1,7 +1,7 @@
 use async_std::net::TcpStream;
 use async_std::task;
 use async_tls::TlsConnector;
-use futures::prelude::*;
+use futures_util::io::{AsyncReadExt, AsyncWriteExt};
 
 #[test]
 fn fetch_google() -> std::io::Result<()> {

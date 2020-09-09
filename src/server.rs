@@ -3,7 +3,8 @@
 use crate::common::tls_state::TlsState;
 use crate::rusttls::stream::Stream;
 
-use futures::io::{AsyncRead, AsyncWrite};
+use futures_core::ready;
+use futures_io::{AsyncRead, AsyncWrite};
 use rustls::ServerSession;
 use std::future::Future;
 use std::pin::Pin;
@@ -42,11 +43,11 @@ where
             let mut stream = Stream::new(io, session).set_eof(eof);
 
             if stream.session.is_handshaking() {
-                futures::ready!(stream.complete_io(cx))?;
+                ready!(stream.complete_io(cx))?;
             }
 
             if stream.session.wants_write() {
-                futures::ready!(stream.complete_io(cx))?;
+                ready!(stream.complete_io(cx))?;
             }
         }
 
