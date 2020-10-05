@@ -18,7 +18,7 @@ use rustls::Session;
 #[derive(Debug)]
 pub struct TlsStream<IO> {
     pub(crate) io: IO,
-    pub(crate) session: ServerSession,
+    pub session: ServerSession,
     pub(crate) state: TlsState,
 }
 
