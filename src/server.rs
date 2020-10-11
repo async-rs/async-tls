@@ -22,6 +22,13 @@ pub struct TlsStream<IO> {
     pub(crate) state: TlsState,
 }
 
+impl<IO> TlsStream<IO> {
+    /// Retrieves the SNI hostname, if any, used to select the certificate and private key.
+    pub fn get_sni_hostname(&self) -> Option<&str> {
+        self.session.get_sni_hostname()
+    }
+}
+
 pub(crate) enum MidHandshake<IO> {
     Handshaking(TlsStream<IO>),
     End,
