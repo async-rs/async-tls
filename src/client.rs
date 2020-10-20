@@ -2,7 +2,8 @@
 
 use crate::common::tls_state::TlsState;
 use crate::rusttls::stream::Stream;
-use futures::io::{AsyncRead, AsyncWrite};
+use futures_core::ready;
+use futures_io::{AsyncRead, AsyncWrite};
 use rustls::ClientSession;
 use std::future::Future;
 use std::pin::Pin;
@@ -58,11 +59,11 @@ where
             let mut stream = Stream::new(io, session).set_eof(eof);
 
             if stream.session.is_handshaking() {
-                futures::ready!(stream.complete_io(cx))?;
+                ready!(stream.complete_io(cx))?;
             }
 
             if stream.session.wants_write() {
-                futures::ready!(stream.complete_io(cx))?;
+                ready!(stream.complete_io(cx))?;
             }
         }
 
@@ -95,14 +96,13 @@ where
 
                 // complete handshake
                 if stream.session.is_handshaking() {
-                    futures::ready!(stream.complete_io(cx))?;
+                    ready!(stream.complete_io(cx))?;
                 }
 
                 // write early data (fallback)
                 if !stream.session.is_early_data_accepted() {
                     while *pos < data.len() {
-                        let len =
-                            futures::ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
+                        let len = ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
                         *pos += len;
                     }
                 }
@@ -176,14 +176,13 @@ where
 
                 // complete handshake
                 if stream.session.is_handshaking() {
-                    futures::ready!(stream.complete_io(cx))?;
+                    ready!(stream.complete_io(cx))?;
                 }
 
                 // write early data (fallback)
                 if !stream.session.is_early_data_accepted() {
                     while *pos < data.len() {
-                        let len =
-                            futures::ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
+                        let len = ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
                         *pos += len;
                     }
                 }

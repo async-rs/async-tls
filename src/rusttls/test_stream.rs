@@ -1,8 +1,9 @@
 use super::Stream;
-use futures::executor;
-use futures::io::{AsyncRead, AsyncWrite};
-use futures::prelude::*;
-use futures::task::{noop_waker_ref, Context};
+use futures_executor::block_on;
+use futures_io::{AsyncRead, AsyncWrite};
+use futures_util::io::{AsyncReadExt, AsyncWriteExt};
+use futures_util::task::{noop_waker_ref, Context};
+use futures_util::{future, ready};
 use rustls::internal::pemfile::{certs, rsa_private_keys};
 use rustls::{ClientConfig, ClientSession, NoClientAuth, ServerConfig, ServerSession, Session};
 use std::io::{self, BufReader, Cursor, Read, Write};
@@ -105,7 +106,7 @@ fn stream_good() -> io::Result<()> {
         Ok(()) as io::Result<()>
     };
 
-    executor::block_on(fut)
+    block_on(fut)
 }
 
 #[test]
@@ -137,7 +138,7 @@ fn stream_bad() -> io::Result<()> {
         Ok(()) as io::Result<()>
     };
 
-    executor::block_on(fut)
+    block_on(fut)
 }
 
 #[test]
@@ -162,7 +163,7 @@ fn stream_handshake() -> io::Result<()> {
         Ok(()) as io::Result<()>
     };
 
-    executor::block_on(fut)
+    block_on(fut)
 }
 
 #[test]
@@ -183,7 +184,7 @@ fn stream_handshake_eof() -> io::Result<()> {
         Ok(()) as io::Result<()>
     };
 
-    executor::block_on(fut)
+    block_on(fut)
 }
 
 #[test]
@@ -202,7 +203,7 @@ fn stream_eof() -> io::Result<()> {
         Ok(()) as io::Result<()>
     };
 
-    executor::block_on(fut)
+    block_on(fut)
 }
 
 fn make_pair() -> (ServerSession, ClientSession) {
@@ -234,11 +235,11 @@ fn do_handshake(
     let mut stream = Stream::new(&mut good, client);
 
     if stream.session.is_handshaking() {
-        futures::ready!(stream.complete_io(cx))?;
+        ready!(stream.complete_io(cx))?;
     }
 
     if stream.session.wants_write() {
-        futures::ready!(stream.complete_io(cx))?;
+        ready!(stream.complete_io(cx))?;
     }
 
     Poll::Ready(Ok(()))
