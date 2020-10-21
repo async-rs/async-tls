@@ -23,7 +23,11 @@ pub struct TlsStream<IO> {
 }
 
 impl<IO> TlsStream<IO> {
-    pub fn peer_certificates(&self) -> Option<Vec<Certificate>> {
+    /// Retrieves the certificate chain used by the client,
+    /// if client authentication was completed.
+    ///
+    /// The return value is None until this value is available.
+    pub fn client_certificates(&self) -> Option<Vec<Certificate>> {
         self.session.get_peer_certificates()
     }
 }
