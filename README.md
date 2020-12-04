@@ -56,11 +56,11 @@ I, [Florian Gilcher](https://github.com/skade), am currently the main maintainer
 * Backend-independence (currently not implemented)
 * Focused on _use-case based_ configuration rather then exposing all configurations
 
-I expect applicants for maintainership to present a committment of at least 4h of time/week initially, so I recommend getting corporate backing first.
+I expect applicants for maintainership to present a committment of at least 4h of time/week initially, so I recommend getting corporate backing first. The number isn't strict, but I want the process to improve maintenance. I'm happy with a group of multiple maintainers.
 
 I commit to weekly feedback of 30 minutes for the first 2 months - more in the initial days of handover.
 
-Please reach out to me at [through email](mailto:flo@andersground.net).
+If interested, please reach out to me at [through email](mailto:flo@andersground.net).
 
 # Features
 
