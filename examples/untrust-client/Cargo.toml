@@ -1,0 +1,14 @@
+[package]
+name = "untrust-client"
+version = "0.1.0"
+authors = ["于明明 <mingming.yu@hanshow.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+structopt = {version = "0.3"}
+async-std = "1.8.0"
+async-tls = { path = "../.." }
+rustls = {version="0.19.0", features=["dangerous_configuration"]}
+webpki = "0.21.4"
