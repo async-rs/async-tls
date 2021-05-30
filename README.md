@@ -109,6 +109,15 @@ cd examples/client
 cargo run -- hsts.badssl.com
 ```
 
+### Danger Client Example Program
+
+See [examples/danger_client](examples/danger_client/src/main.rs). You can run it with:
+
+```sh
+cd examples/danger_client
+cargo run -- hsts.badssl.com
+```
+
 ### Server Example Program
 
 See [examples/server](examples/server/src/main.rs). You can run it with:

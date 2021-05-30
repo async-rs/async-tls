@@ -14,7 +14,6 @@ struct Options {
     /// The host port to connect to
     #[structopt(short = "p", long = "port", default_value = "443")]
     port: u16,
-
 }
 
 mod danger {
@@ -33,13 +32,31 @@ mod danger {
         ) -> Result<rustls::ServerCertVerified, rustls::TLSError> {
             Ok(rustls::ServerCertVerified::assertion())
         }
+
+        fn verify_tls12_signature(
+            &self,
+            _message: &[u8],
+            _cert: &rustls::Certificate,
+            _dss: &rustls::internal::msgs::handshake::DigitallySignedStruct,
+        ) -> Result<rustls::HandshakeSignatureValid, rustls::TLSError> {
+            Ok(rustls::HandshakeSignatureValid::assertion())
+        }
+
+        fn verify_tls13_signature(
+            &self,
+            _message: &[u8],
+            _cert: &rustls::Certificate,
+            _dss: &rustls::internal::msgs::handshake::DigitallySignedStruct,
+        ) -> Result<rustls::HandshakeSignatureValid, rustls::TLSError> {
+            Ok(rustls::HandshakeSignatureValid::assertion())
+        }
     }
 }
 
 fn main() -> io::Result<()> {
     let options = Options::from_args();
     // Create a bare bones HTTP GET request
-    let http_request = format!("GET / HTTP/1.0\r\n");
+    let http_request = format!("GET / HTTP/1.0\r\n\r\n");
 
     task::block_on(async move {
         let addr = format!("{}:{}", options.serverip, options.port);
@@ -51,7 +68,7 @@ fn main() -> io::Result<()> {
 
         let tcp_stream = TcpStream::connect(addr).await.unwrap();
         let connector = TlsConnector::from(config);
-        let mut tls_stream = connector.connect("any", tcp_stream).await.unwrap();
+        let mut tls_stream = connector.connect("localhost", tcp_stream).await.unwrap();
 
         // We write our crafted HTTP request to it
         tls_stream.write_all(http_request.as_bytes()).await?;
