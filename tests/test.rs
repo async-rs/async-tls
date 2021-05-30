@@ -1,7 +1,7 @@
+use async_std::channel::bounded as channel;
 use async_std::io;
 use async_std::net::{TcpListener, TcpStream};
 use async_std::prelude::*;
-use async_std::channel::bounded as channel;
 use async_std::task;
 use async_tls::{TlsAcceptor, TlsConnector};
 use lazy_static::lazy_static;
