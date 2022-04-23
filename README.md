@@ -48,6 +48,20 @@
 
 <br/>
 
+# Maintenance Notice
+
+I, [Florian Gilcher](https://github.com/skade), am currently the main maintainer of `async-tls`. Due to general workload, I would like the hand the maintenance off to someone else carrying the general vision of `async-tls`:
+
+* Runtime-independence
+* Backend-independence (currently not implemented)
+* Focused on _use-case based_ configuration rather then exposing all configurations
+
+I expect applicants for maintainership to present a committment of at least 4h of time/week initially, so I recommend getting corporate backing first. The number isn't strict, but I want the process to improve maintenance. I'm happy with a group of multiple maintainers.
+
+I commit to weekly feedback of 30 minutes for the first 2 months - more in the initial days of handover.
+
+If interested, please reach out to me at [through email](mailto:flo@andersground.net).
+
 # Features
 
 `async-tls` can be used both in server and client programs. To save compilation times, you
