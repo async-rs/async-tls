@@ -82,7 +82,7 @@ impl AsyncWrite for Bad {
 
 #[test]
 fn stream_good() -> io::Result<()> {
-    const FILE: &'static [u8] = include_bytes!("../../README.md");
+    const FILE: &[u8] = include_bytes!("../../README.md");
 
     let fut = async {
         let (mut server, mut client) = make_pair();

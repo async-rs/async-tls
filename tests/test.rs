@@ -61,7 +61,7 @@ fn start_server() -> &'static (SocketAddr, &'static str, &'static str) {
 }
 
 async fn start_client(addr: SocketAddr, domain: &str, config: Arc<ClientConfig>) -> io::Result<()> {
-    const FILE: &'static [u8] = include_bytes!("../README.md");
+    const FILE: &[u8] = include_bytes!("../README.md");
 
     let config = TlsConnector::from(config);
     let mut buf = vec![0; FILE.len()];
@@ -88,7 +88,7 @@ fn pass() {
         .with_safe_defaults()
         .with_root_certificates(root_store)
         .with_no_client_auth();
-    task::block_on(start_client(addr.clone(), domain, Arc::new(config))).unwrap();
+    task::block_on(start_client(*addr, domain, Arc::new(config))).unwrap();
 }
 
 #[test]
@@ -105,5 +105,5 @@ fn fail() {
     let config = Arc::new(config);
 
     assert_ne!(domain, &"google.com");
-    assert!(task::block_on(start_client(addr.clone(), "google.com", config)).is_err());
+    assert!(task::block_on(start_client(*addr, "google.com", config)).is_err());
 }
