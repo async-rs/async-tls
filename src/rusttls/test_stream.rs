@@ -4,8 +4,11 @@ use futures_io::{AsyncRead, AsyncWrite};
 use futures_util::io::{AsyncReadExt, AsyncWriteExt};
 use futures_util::task::{noop_waker_ref, Context};
 use futures_util::{future, ready};
+use rustls::{
+    Certificate, ClientConfig, ClientConnection, ConnectionCommon, PrivateKey, RootCertStore,
+    ServerConfig, ServerConnection, ServerName,
+};
 use rustls_pemfile::{certs, rsa_private_keys};
-use rustls::{ClientConfig, ClientConnection, ServerConfig, ServerConnection, ConnectionCommon, Certificate, PrivateKey, ServerName, RootCertStore};
 use std::convert::TryFrom;
 use std::io::{self, BufReader, Cursor, Read, Write};
 use std::pin::Pin;

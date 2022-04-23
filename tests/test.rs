@@ -1,12 +1,12 @@
+use async_std::channel::bounded;
 use async_std::io;
 use async_std::net::{TcpListener, TcpStream};
 use async_std::prelude::*;
-use async_std::channel::bounded;
 use async_std::task;
 use async_tls::{TlsAcceptor, TlsConnector};
 use lazy_static::lazy_static;
+use rustls::{Certificate, ClientConfig, PrivateKey, RootCertStore, ServerConfig};
 use rustls_pemfile::{certs, rsa_private_keys};
-use rustls::{ClientConfig, ServerConfig, Certificate, PrivateKey, RootCertStore};
 use std::io::{BufReader, Cursor};
 use std::net::SocketAddr;
 use std::sync::Arc;

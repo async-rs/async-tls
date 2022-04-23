@@ -203,9 +203,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> AsyncRead for Stream<'a, 
         let mut reader = this.conn.reader();
         match reader.read(buf) {
             Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => Poll::Pending,
-            result => {
-                Poll::Ready(result)
-            },
+            result => Poll::Ready(result),
         }
     }
 }

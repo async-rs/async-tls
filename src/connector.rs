@@ -3,7 +3,7 @@ use crate::common::tls_state::TlsState;
 use crate::client;
 
 use futures_io::{AsyncRead, AsyncWrite};
-use rustls::{ClientConfig, ClientConnection, ServerName, RootCertStore, OwnedTrustAnchor};
+use rustls::{ClientConfig, ClientConnection, OwnedTrustAnchor, RootCertStore, ServerName};
 use std::convert::TryFrom;
 use std::future::Future;
 use std::io;
@@ -65,18 +65,13 @@ impl From<ClientConfig> for TlsConnector {
 impl Default for TlsConnector {
     fn default() -> Self {
         let mut root_certs = RootCertStore::empty();
-        root_certs.add_server_trust_anchors(
-            webpki_roots::TLS_SERVER_ROOTS
-                .0
-                .iter()
-                .map(|ta| {
-                    OwnedTrustAnchor::from_subject_spki_name_constraints(
-                        ta.subject,
-                        ta.spki,
-                        ta.name_constraints,
-                    )
-                }),
-        );
+        root_certs.add_server_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(|ta| {
+            OwnedTrustAnchor::from_subject_spki_name_constraints(
+                ta.subject,
+                ta.spki,
+                ta.name_constraints,
+            )
+        }));
         let config = ClientConfig::builder()
             .with_safe_defaults()
             .with_root_certificates(root_certs)

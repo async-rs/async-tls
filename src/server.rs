@@ -66,8 +66,7 @@ where
         buf: &mut [u8],
     ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
-        let mut stream =
-            Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
+        let mut stream = Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
 
         match this.state {
             TlsState::Stream | TlsState::WriteShutdown => {
@@ -106,15 +105,13 @@ where
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
-        let mut stream =
-            Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
+        let mut stream = Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
         stream.as_mut_pin().poll_write(cx, buf)
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let this = self.get_mut();
-        let mut stream =
-            Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
+        let mut stream = Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
         stream.as_mut_pin().poll_flush(cx)
     }
 
@@ -125,8 +122,7 @@ where
         }
 
         let this = self.get_mut();
-        let mut stream =
-            Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
+        let mut stream = Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
         stream.as_mut_pin().poll_close(cx)
     }
 }

@@ -3,7 +3,7 @@ use async_std::net::TcpStream;
 use async_std::sync::Arc;
 use futures_executor::block_on;
 use futures_util::io::{AsyncReadExt, AsyncWriteExt};
-use rustls::{ClientConfig, RootCertStore, OwnedTrustAnchor};
+use rustls::{ClientConfig, OwnedTrustAnchor, RootCertStore};
 use std::io;
 use std::net::ToSocketAddrs;
 
@@ -29,18 +29,13 @@ async fn get(
 #[test]
 fn test_0rtt() {
     let mut root_certs = RootCertStore::empty();
-    root_certs.add_server_trust_anchors(
-        webpki_roots::TLS_SERVER_ROOTS
-            .0
-            .iter()
-            .map(|ta| {
-                OwnedTrustAnchor::from_subject_spki_name_constraints(
-                    ta.subject,
-                    ta.spki,
-                    ta.name_constraints,
-                )
-            }),
-    );
+    root_certs.add_server_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(|ta| {
+        OwnedTrustAnchor::from_subject_spki_name_constraints(
+            ta.subject,
+            ta.spki,
+            ta.name_constraints,
+        )
+    }));
     let config = ClientConfig::builder()
         .with_safe_defaults()
         .with_root_certificates(root_certs)
