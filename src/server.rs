@@ -5,20 +5,18 @@ use crate::rusttls::stream::Stream;
 
 use futures_core::ready;
 use futures_io::{AsyncRead, AsyncWrite};
-use rustls::ServerSession;
+use rustls::ServerConnection;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::{io, mem};
-
-use rustls::Session;
 
 /// The server end of a TLS connection. Can be used like any other bidirectional IO stream.
 /// Wraps the underlying TCP stream.
 #[derive(Debug)]
 pub struct TlsStream<IO> {
     pub(crate) io: IO,
-    pub(crate) session: ServerSession,
+    pub(crate) conn: ServerConnection,
     pub(crate) state: TlsState,
 }
 
@@ -39,14 +37,14 @@ where
 
         if let MidHandshake::Handshaking(stream) = this {
             let eof = !stream.state.readable();
-            let (io, session) = (&mut stream.io, &mut stream.session);
+            let (io, session) = (&mut stream.io, &mut stream.conn);
             let mut stream = Stream::new(io, session).set_eof(eof);
 
-            if stream.session.is_handshaking() {
+            if stream.conn.is_handshaking() {
                 ready!(stream.complete_io(cx))?;
             }
 
-            if stream.session.wants_write() {
+            if stream.conn.wants_write() {
                 ready!(stream.complete_io(cx))?;
             }
         }
@@ -69,7 +67,7 @@ where
     ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
         let mut stream =
-            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
+            Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
 
         match this.state {
             TlsState::Stream | TlsState::WriteShutdown => {
@@ -82,7 +80,7 @@ where
                     Poll::Ready(Err(ref err)) if err.kind() == io::ErrorKind::ConnectionAborted => {
                         this.state.shutdown_read();
                         if this.state.writeable() {
-                            stream.session.send_close_notify();
+                            stream.conn.send_close_notify();
                             this.state.shutdown_write();
                         }
                         Poll::Ready(Ok(0))
@@ -109,26 +107,26 @@ where
     ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
         let mut stream =
-            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
+            Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
         stream.as_mut_pin().poll_write(cx, buf)
     }
 
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let this = self.get_mut();
         let mut stream =
-            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
+            Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
         stream.as_mut_pin().poll_flush(cx)
     }
 
     fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         if self.state.writeable() {
-            self.session.send_close_notify();
+            self.conn.send_close_notify();
             self.state.shutdown_write();
         }
 
         let this = self.get_mut();
         let mut stream =
-            Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
+            Stream::new(&mut this.io, &mut this.conn).set_eof(!this.state.readable());
         stream.as_mut_pin().poll_close(cx)
     }
 }

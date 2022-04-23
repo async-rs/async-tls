@@ -1,18 +1,18 @@
 use futures_core::ready;
 use futures_io::{AsyncRead, AsyncWrite};
-use rustls::Session;
+use rustls::ConnectionCommon;
 use std::io::{self, Read, Write};
 use std::marker::Unpin;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-pub struct Stream<'a, IO, S> {
+pub struct Stream<'a, IO, D> {
     pub io: &'a mut IO,
-    pub session: &'a mut S,
+    pub conn: &'a mut ConnectionCommon<D>,
     pub eof: bool,
 }
 
-trait WriteTls<IO: AsyncWrite, S: Session> {
+trait WriteTls<IO: AsyncWrite> {
     fn write_tls(&mut self, cx: &mut Context) -> io::Result<usize>;
 }
 
@@ -23,11 +23,11 @@ enum Focus {
     Writable,
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> Stream<'a, IO, S> {
-    pub fn new(io: &'a mut IO, session: &'a mut S) -> Self {
+impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> Stream<'a, IO, D> {
+    pub fn new(io: &'a mut IO, conn: &'a mut ConnectionCommon<D>) -> Self {
         Stream {
             io,
-            session,
+            conn,
             // The state so far is only used to detect EOF, so either Stream
             // or EarlyData state should both be all right.
             eof: false,
@@ -64,13 +64,13 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> Stream<'a, IO, S> {
 
         let mut reader = Reader { io: self.io, cx };
 
-        let n = match self.session.read_tls(&mut reader) {
+        let n = match self.conn.read_tls(&mut reader) {
             Ok(n) => n,
             Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => return Poll::Pending,
             Err(err) => return Poll::Ready(Err(err)),
         };
 
-        self.session.process_new_packets().map_err(|err| {
+        self.conn.process_new_packets().map_err(|err| {
             // In case we have an alert to send describing this error,
             // try a last-gasp write -- but don't predate the primary
             // error.
@@ -101,7 +101,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> Stream<'a, IO, S> {
             let mut write_would_block = false;
             let mut read_would_block = false;
 
-            while self.session.wants_write() {
+            while self.conn.wants_write() {
                 match self.complete_write_io(cx) {
                     Poll::Ready(Ok(n)) => wrlen += n,
                     Poll::Pending => {
@@ -112,7 +112,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> Stream<'a, IO, S> {
                 }
             }
 
-            if !self.eof && self.session.wants_read() {
+            if !self.eof && self.conn.wants_read() {
                 match self.complete_read_io(cx) {
                     Poll::Ready(Ok(0)) => self.eof = true,
                     Poll::Ready(Ok(n)) => rdlen += n,
@@ -127,7 +127,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> Stream<'a, IO, S> {
                 Focus::Writable => write_would_block,
             };
 
-            match (self.eof, self.session.is_handshaking(), would_block) {
+            match (self.eof, self.conn.is_handshaking(), would_block) {
                 (true, true, _) => {
                     let err = io::Error::new(io::ErrorKind::UnexpectedEof, "tls handshake eof");
                     return Poll::Ready(Err(err));
@@ -153,7 +153,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> Stream<'a, IO, S> {
     }
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> WriteTls<IO, S> for Stream<'a, IO, S> {
+impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> WriteTls<IO> for Stream<'a, IO, D> {
     fn write_tls(&mut self, cx: &mut Context) -> io::Result<usize> {
         // TODO writev
 
@@ -179,11 +179,11 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> WriteTls<IO, S> for Str
         }
 
         let mut writer = Writer { io: self.io, cx };
-        self.session.write_tls(&mut writer)
+        self.conn.write_tls(&mut writer)
     }
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> AsyncRead for Stream<'a, IO, S> {
+impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> AsyncRead for Stream<'a, IO, D> {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context,
@@ -191,7 +191,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> AsyncRead for Stream<'a
     ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
 
-        while this.session.wants_read() {
+        while this.conn.wants_read() {
             match this.complete_inner_io(cx, Focus::Readable) {
                 Poll::Ready(Ok((0, _))) => break,
                 Poll::Ready(Ok(_)) => (),
@@ -200,23 +200,26 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> AsyncRead for Stream<'a
             }
         }
 
-        match this.session.read(buf) {
+        let mut reader = this.conn.reader();
+        match reader.read(buf) {
             Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => Poll::Pending,
-            result => Poll::Ready(result),
+            result => {
+                Poll::Ready(result)
+            },
         }
     }
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> AsyncWrite for Stream<'a, IO, S> {
+impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> AsyncWrite for Stream<'a, IO, D> {
     fn poll_write(self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
 
-        let len = match this.session.write(buf) {
+        let len = match this.conn.writer().write(buf) {
             Ok(n) => n,
             Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => return Poll::Pending,
             Err(err) => return Poll::Ready(Err(err)),
         };
-        while this.session.wants_write() {
+        while this.conn.wants_write() {
             match this.complete_inner_io(cx, Focus::Writable) {
                 Poll::Ready(Ok(_)) => (),
                 Poll::Pending if len != 0 => break,
@@ -229,7 +232,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> AsyncWrite for Stream<'
             Poll::Ready(Ok(len))
         } else {
             // not write zero
-            match this.session.write(buf) {
+            match this.conn.writer().write(buf) {
                 Ok(0) => Poll::Pending,
                 Ok(n) => Poll::Ready(Ok(n)),
                 Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => Poll::Pending,
@@ -241,8 +244,8 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> AsyncWrite for Stream<'
     fn poll_flush(self: Pin<&mut Self>, cx: &mut Context) -> Poll<io::Result<()>> {
         let this = self.get_mut();
 
-        this.session.flush()?;
-        while this.session.wants_write() {
+        this.conn.writer().flush()?;
+        while this.conn.wants_write() {
             ready!(this.complete_inner_io(cx, Focus::Writable))?;
         }
         Pin::new(&mut this.io).poll_flush(cx)
@@ -251,7 +254,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, S: Session> AsyncWrite for Stream<'
     fn poll_close(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
         let this = self.get_mut();
 
-        while this.session.wants_write() {
+        while this.conn.wants_write() {
             ready!(this.complete_inner_io(cx, Focus::Writable))?;
         }
         Pin::new(&mut this.io).poll_close(cx)

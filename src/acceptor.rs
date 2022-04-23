@@ -2,7 +2,7 @@ use crate::common::tls_state::TlsState;
 use crate::server;
 
 use futures_io::{AsyncRead, AsyncWrite};
-use rustls::{ServerConfig, ServerSession};
+use rustls::{ServerConfig, ServerConnection};
 use std::future::Future;
 use std::io;
 use std::pin::Pin;
@@ -39,17 +39,23 @@ impl TlsAcceptor {
         self.accept_with(stream, |_| ())
     }
 
-    // Currently private, as exposing ServerSessions exposes rusttls
+    // Currently private, as exposing ServerConnections exposes rusttls
     fn accept_with<IO, F>(&self, stream: IO, f: F) -> Accept<IO>
     where
         IO: AsyncRead + AsyncWrite + Unpin,
-        F: FnOnce(&mut ServerSession),
+        F: FnOnce(&mut ServerConnection),
     {
-        let mut session = ServerSession::new(&self.inner);
-        f(&mut session);
+        let mut conn = match ServerConnection::new(self.inner.clone()) {
+            Ok(conn) => conn,
+            Err(_) => {
+                return Accept(server::MidHandshake::End);
+            }
+        };
+
+        f(&mut conn);
 
         Accept(server::MidHandshake::Handshaking(server::TlsStream {
-            session,
+            conn,
             io: stream,
             state: TlsState::Stream,
         }))
