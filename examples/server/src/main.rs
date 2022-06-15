@@ -1,10 +1,11 @@
 use async_std::io;
 use async_std::net::{TcpListener, TcpStream};
-use async_std::prelude::*;
+use async_std::stream::StreamExt;
 use async_std::task;
 use async_tls::TlsAcceptor;
-use rustls::internal::pemfile::{certs, rsa_private_keys};
-use rustls::{Certificate, NoClientAuth, PrivateKey, ServerConfig};
+use futures_lite::io::AsyncWriteExt;
+use rustls::{Certificate, PrivateKey, ServerConfig};
+use rustls_pemfile::{certs, read_one, Item};
 
 use std::fs::File;
 use std::io::BufReader;
@@ -28,14 +29,23 @@ struct Options {
 
 /// Load the passed certificates file
 fn load_certs(path: &Path) -> io::Result<Vec<Certificate>> {
-    certs(&mut BufReader::new(File::open(path)?))
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid cert"))
+    Ok(certs(&mut BufReader::new(File::open(path)?))
+        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid cert"))?
+        .into_iter()
+        .map(Certificate)
+        .collect())
 }
 
 /// Load the passed keys file
-fn load_keys(path: &Path) -> io::Result<Vec<PrivateKey>> {
-    rsa_private_keys(&mut BufReader::new(File::open(path)?))
-        .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "invalid key"))
+fn load_key(path: &Path) -> io::Result<PrivateKey> {
+    match read_one(&mut BufReader::new(File::open(path)?)) {
+        Ok(Some(Item::RSAKey(data) | Item::PKCS8Key(data))) => Ok(PrivateKey(data)),
+        Ok(_) => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("invalid key in {}", path.display()),
+        )),
+        Err(e) => Err(io::Error::new(io::ErrorKind::InvalidInput, e)),
+    }
 }
 
 /// Configure the server using rusttls
@@ -44,13 +54,15 @@ fn load_keys(path: &Path) -> io::Result<Vec<PrivateKey>> {
 /// A TLS server needs a certificate and a fitting private key
 fn load_config(options: &Options) -> io::Result<ServerConfig> {
     let certs = load_certs(&options.cert)?;
-    let mut keys = load_keys(&options.key)?;
+    debug_assert_eq!(1, certs.len());
+    let key = load_key(&options.key)?;
 
     // we don't use client authentication
-    let mut config = ServerConfig::new(NoClientAuth::new());
-    config
+    let config = ServerConfig::builder()
+        .with_safe_defaults()
+        .with_no_client_auth()
         // set this server to use one cert together with the loaded private key
-        .set_single_cert(certs, keys.remove(0))
+        .with_single_cert(certs, key)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidInput, err))?;
 
     Ok(config)
@@ -78,7 +90,7 @@ async fn handle_connection(acceptor: &TlsAcceptor, tcp_stream: &mut TcpStream) -
         )
         .await?;
 
-    tls_stream.flush().await?;
+    tls_stream.close().await?;
 
     Ok(())
 }
