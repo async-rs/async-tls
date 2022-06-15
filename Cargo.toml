@@ -38,7 +38,7 @@ server = []
 lazy_static = "1"
 futures-executor = "0.3.5"
 futures-util = { version = "0.3.5", features = ["io"] }
-async-std = { version = "1.0", features = ["unstable"] }
+async-std = { version = "1.11", features = ["unstable"] }
 
 [[test]]
 name = "test"
