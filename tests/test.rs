@@ -6,7 +6,7 @@ use async_std::task;
 use async_tls::{TlsAcceptor, TlsConnector};
 use lazy_static::lazy_static;
 use rustls::{Certificate, ClientConfig, PrivateKey, RootCertStore, ServerConfig};
-use rustls_pemfile::{certs, rsa_private_keys};
+use rustls_pemfile::{certs, pkcs8_private_keys};
 use std::io::{BufReader, Cursor};
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -16,10 +16,11 @@ const CHAIN: &str = include_str!("end.chain");
 const RSA: &str = include_str!("end.rsa");
 
 lazy_static! {
-    static ref TEST_SERVER: (SocketAddr, &'static str, &'static str) = {
+    static ref TEST_SERVER: (SocketAddr, &'static str, Vec<Vec<u8>>) = {
         let cert = certs(&mut BufReader::new(Cursor::new(CERT))).unwrap();
         let cert = cert.into_iter().map(Certificate).collect();
-        let mut keys = rsa_private_keys(&mut BufReader::new(Cursor::new(RSA))).unwrap();
+        let chain = certs(&mut BufReader::new(Cursor::new(CHAIN))).unwrap();
+        let mut keys = pkcs8_private_keys(&mut BufReader::new(Cursor::new(RSA))).unwrap();
         let key = PrivateKey(keys.pop().unwrap());
         let sconfig = ServerConfig::builder()
             .with_safe_defaults()
@@ -52,11 +53,11 @@ lazy_static! {
         });
 
         let addr = task::block_on(async move { recv.recv().await.unwrap() });
-        (addr, "localhost", CHAIN)
+        (addr, "localhost", chain)
     };
 }
 
-fn start_server() -> &'static (SocketAddr, &'static str, &'static str) {
+fn start_server() -> &'static (SocketAddr, &'static str, Vec<Vec<u8>>) {
     &*TEST_SERVER
 }
 
@@ -81,7 +82,6 @@ async fn start_client(addr: SocketAddr, domain: &str, config: Arc<ClientConfig>)
 fn pass() {
     let (addr, domain, chain) = start_server();
     let mut root_store = RootCertStore::empty();
-    let chain = [chain.as_bytes().to_vec()];
     let (added, ignored) = root_store.add_parsable_certificates(&chain);
     assert!(added >= 1 && ignored == 0);
     let config = ClientConfig::builder()
@@ -95,7 +95,6 @@ fn pass() {
 fn fail() {
     let (addr, domain, chain) = start_server();
     let mut root_store = RootCertStore::empty();
-    let chain = [chain.as_bytes().to_vec()];
     let (added, ignored) = root_store.add_parsable_certificates(&chain);
     assert!(added >= 1 && ignored == 0);
     let config = ClientConfig::builder()

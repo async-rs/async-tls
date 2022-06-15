@@ -13,7 +13,12 @@ fn fetch_google() -> std::io::Result<()> {
 
         stream.write_all(b"GET / HTTP/1.0\r\n\r\n").await?;
         let mut res = vec![];
-        stream.read_to_end(&mut res).await?;
+        // google might answer with a close_notify or not
+        match stream.read_to_end(&mut res).await {
+            Ok(_bytes_read) => (),
+            Err(e) if e.kind() == std::io::ErrorKind::UnexpectedEof => (),
+            Err(e) => return Err(e),
+        }
 
         let data = String::from_utf8_lossy(&res);
         println!("{}", &data);
