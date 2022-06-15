@@ -8,7 +8,7 @@ use rustls::{
     Certificate, ClientConfig, ClientConnection, ConnectionCommon, PrivateKey, RootCertStore,
     ServerConfig, ServerConnection, ServerName,
 };
-use rustls_pemfile::{certs, rsa_private_keys};
+use rustls_pemfile::{certs, pkcs8_private_keys};
 use std::convert::TryFrom;
 use std::io::{self, BufReader, Cursor, Read, Write};
 use std::pin::Pin;
@@ -40,12 +40,16 @@ impl<'a, D> AsyncWrite for Good<'a, D> {
         Poll::Ready(Ok(len))
     }
 
-    fn poll_flush(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+    fn poll_flush(mut self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        self.0
+            .process_new_packets()
+            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err))?;
         Poll::Ready(Ok(()))
     }
 
-    fn poll_close(self: Pin<&mut Self>, _cx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Poll::Ready(Ok(()))
+    fn poll_close(mut self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        self.0.send_close_notify();
+        self.poll_flush(cx)
     }
 }
 
@@ -85,31 +89,33 @@ impl AsyncWrite for Bad {
 
 #[test]
 fn stream_good() -> io::Result<()> {
+    block_on(_stream_good())
+}
+
+async fn _stream_good() -> io::Result<()> {
     const FILE: &[u8] = include_bytes!("../../README.md");
+    let (mut server, mut client) = make_pair();
+    future::poll_fn(|cx| do_handshake(&mut client, &mut server, cx)).await?;
+    io::copy(&mut Cursor::new(FILE), &mut server.writer())?;
+    server.send_close_notify();
 
-    let fut = async {
-        let (mut server, mut client) = make_pair();
-        future::poll_fn(|cx| do_handshake(&mut client, &mut server, cx)).await?;
-        io::copy(&mut Cursor::new(FILE), &mut server.writer())?;
+    {
+        let mut good = Good(&mut server);
+        let mut stream = Stream::new(&mut good, &mut client);
 
-        {
-            let mut good = Good(&mut server);
-            let mut stream = Stream::new(&mut good, &mut client);
+        let mut buf = Vec::new();
+        stream.read_to_end(&mut buf).await?;
+        assert_eq!(buf, FILE);
+        stream.write_all(b"Hello World!").await?;
+        stream.conn.send_close_notify();
+        stream.close().await?;
+    }
 
-            let mut buf = Vec::new();
-            stream.read_to_end(&mut buf).await?;
-            assert_eq!(buf, FILE);
-            stream.write_all(b"Hello World!").await?;
-        }
+    let mut buf = String::new();
+    server.reader().read_to_string(&mut buf)?;
+    assert_eq!(buf, "Hello World!");
 
-        let mut buf = String::new();
-        server.reader().read_to_string(&mut buf)?;
-        assert_eq!(buf, "Hello World!");
-
-        Ok(()) as io::Result<()>
-    };
-
-    block_on(fut)
+    Ok(()) as io::Result<()>
 }
 
 #[test]
@@ -196,12 +202,15 @@ fn stream_eof() -> io::Result<()> {
         let (mut server, mut client) = make_pair();
         future::poll_fn(|cx| do_handshake(&mut client, &mut server, cx)).await?;
 
-        let mut good = Good(&mut server);
-        let mut stream = Stream::new(&mut good, &mut client).set_eof(true);
+        let mut eof_stream = Bad(false);
+        let mut stream = Stream::new(&mut eof_stream, &mut client);
 
         let mut buf = Vec::new();
-        stream.read_to_end(&mut buf).await?;
-        assert_eq!(buf.len(), 0);
+        let res = stream.read_to_end(&mut buf).await;
+        assert_eq!(
+            res.err().map(|e| e.kind()),
+            Some(std::io::ErrorKind::UnexpectedEof)
+        );
 
         Ok(()) as io::Result<()>
     };
@@ -216,7 +225,7 @@ fn make_pair() -> (ServerConnection, ClientConnection) {
 
     let cert = certs(&mut BufReader::new(Cursor::new(CERT))).unwrap();
     let cert = cert.into_iter().map(Certificate).collect();
-    let mut keys = rsa_private_keys(&mut BufReader::new(Cursor::new(RSA))).unwrap();
+    let mut keys = pkcs8_private_keys(&mut BufReader::new(Cursor::new(RSA))).unwrap();
     let key = PrivateKey(keys.pop().unwrap());
     let sconfig = ServerConfig::builder()
         .with_safe_defaults()

@@ -191,7 +191,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> AsyncRead for Stream<'a, 
     ) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
 
-        while this.conn.wants_read() {
+        while !this.eof && this.conn.wants_read() {
             match this.complete_inner_io(cx, Focus::Readable) {
                 Poll::Ready(Ok((0, _))) => break,
                 Poll::Ready(Ok(_)) => (),
@@ -203,6 +203,10 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> AsyncRead for Stream<'a, 
         let mut reader = this.conn.reader();
         match reader.read(buf) {
             Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => Poll::Pending,
+            Err(err) if err.kind() == io::ErrorKind::UnexpectedEof => {
+                this.eof = true;
+                Poll::Ready(Err(err))
+            }
             result => Poll::Ready(result),
         }
     }
