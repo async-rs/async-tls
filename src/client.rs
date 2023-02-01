@@ -4,20 +4,18 @@ use crate::common::tls_state::TlsState;
 use crate::rusttls::stream::Stream;
 use futures_core::ready;
 use futures_io::{AsyncRead, AsyncWrite};
-use rustls::ClientSession;
+use rustls::ClientConnection;
 use std::future::Future;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 use std::{io, mem};
-
-use rustls::Session;
 
 /// The client end of a TLS connection. Can be used like any other bidirectional IO stream.
 /// Wraps the underlying TCP stream.
 #[derive(Debug)]
 pub struct TlsStream<IO> {
     pub(crate) io: IO,
-    pub(crate) session: ClientSession,
+    pub(crate) session: ClientConnection,
     pub(crate) state: TlsState,
 
     #[cfg(feature = "early-data")]
@@ -58,11 +56,11 @@ where
             let (io, session) = (&mut stream.io, &mut stream.session);
             let mut stream = Stream::new(io, session).set_eof(eof);
 
-            if stream.session.is_handshaking() {
+            if stream.conn.is_handshaking() {
                 ready!(stream.complete_io(cx))?;
             }
 
-            if stream.session.wants_write() {
+            if stream.conn.wants_write() {
                 ready!(stream.complete_io(cx))?;
             }
         }
@@ -90,17 +88,20 @@ where
             TlsState::EarlyData => {
                 let this = self.get_mut();
 
+                let is_handshaking = this.session.is_handshaking();
+                let is_early_data_accepted = this.session.is_early_data_accepted();
+
                 let mut stream =
                     Stream::new(&mut this.io, &mut this.session).set_eof(!this.state.readable());
                 let (pos, data) = &mut this.early_data;
 
                 // complete handshake
-                if stream.session.is_handshaking() {
+                if is_handshaking {
                     ready!(stream.complete_io(cx))?;
                 }
 
                 // write early data (fallback)
-                if !stream.session.is_early_data_accepted() {
+                if !is_early_data_accepted {
                     while *pos < data.len() {
                         let len = ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
                         *pos += len;
@@ -127,7 +128,7 @@ where
                     Poll::Ready(Err(ref e)) if e.kind() == io::ErrorKind::ConnectionAborted => {
                         this.state.shutdown_read();
                         if this.state.writeable() {
-                            stream.session.send_close_notify();
+                            stream.conn.send_close_notify();
                             this.state.shutdown_write();
                         }
                         Poll::Ready(Ok(0))

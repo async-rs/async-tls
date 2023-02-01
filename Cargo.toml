@@ -1,7 +1,12 @@
 [package]
 name = "async-tls"
 version = "0.11.0"
-authors = ["The async-rs developers", "Florian Gilcher <florian.gilcher@ferrous-systems.com>", "dignifiedquire <dignifiedquire@gmail.com>", "quininer kel <quininer@live.com>"]
+authors = [
+    "The async-rs developers",
+    "Florian Gilcher <florian.gilcher@ferrous-systems.com>",
+    "dignifiedquire <dignifiedquire@gmail.com>",
+    "quininer kel <quininer@live.com>",
+]
 license = "MIT/Apache-2.0"
 repository = "https://github.com/async-std/async-tls"
 homepage = "https://github.com/async-std/async-tls"
@@ -18,9 +23,10 @@ appveyor = { repository = "async-std/async-tls" }
 [dependencies]
 futures-io = "0.3.5"
 futures-core = "0.3.5"
-rustls = "0.19.0"
-webpki = { version = "0.21.3", optional = true }
-webpki-roots = { version = "0.21.0", optional = true }
+rustls = "0.20.6"
+rustls-pemfile = "1.0"
+webpki = { version = "0.22.0", optional = true }
+webpki-roots = { version = "0.22.3", optional = true }
 
 [features]
 default = ["client", "server"]
@@ -32,7 +38,7 @@ server = []
 lazy_static = "1"
 futures-executor = "0.3.5"
 futures-util = { version = "0.3.5", features = ["io"] }
-async-std = { version = "1.0", features = ["unstable"] }
+async-std = { version = "1.11", features = ["unstable"] }
 
 [[test]]
 name = "test"
