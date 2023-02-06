@@ -9,7 +9,7 @@ pub mod client;
 mod common;
 #[cfg(feature = "client")]
 mod connector;
-pub mod rusttls;
+mod rusttls;
 #[cfg(feature = "server")]
 pub mod server;
 
@@ -17,6 +17,7 @@ pub mod server;
 pub use acceptor::{Accept, TlsAcceptor};
 #[cfg(feature = "client")]
 pub use connector::{Connect, TlsConnector};
+pub use rustls;
 pub use rustls_pemfile;
 
 #[cfg(all(test, feature = "client", feature = "early-data"))]
