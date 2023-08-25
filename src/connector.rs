@@ -65,7 +65,7 @@ impl From<ClientConfig> for TlsConnector {
 impl Default for TlsConnector {
     fn default() -> Self {
         let mut root_certs = RootCertStore::empty();
-        root_certs.add_server_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(|ta| {
+        root_certs.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(|ta| {
             OwnedTrustAnchor::from_subject_spki_name_constraints(
                 ta.subject,
                 ta.spki,
