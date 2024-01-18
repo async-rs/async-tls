@@ -1,15 +1,115 @@
 use futures_core::ready;
 use futures_io::{AsyncRead, AsyncWrite};
-use rustls::ConnectionCommon;
+#[cfg(feature = "early-data")]
+use rustls::client::WriteEarlyData;
+use rustls::{ClientConnection, IoState, Reader, ServerConnection, Writer};
 use std::io::{self, Read, Write};
 use std::marker::Unpin;
 use std::pin::Pin;
 use std::task::{Context, Poll};
 
-pub struct Stream<'a, IO, D> {
+pub struct Stream<'a, IO> {
     pub io: &'a mut IO,
-    pub conn: &'a mut ConnectionCommon<D>,
+    pub conn: Conn<'a>,
     pub eof: bool,
+}
+
+pub(crate) enum Conn<'a> {
+    Client(&'a mut ClientConnection),
+    Server(&'a mut ServerConnection),
+}
+
+impl Conn<'_> {
+    pub(crate) fn is_handshaking(&self) -> bool {
+        match self {
+            Conn::Client(c) => c.is_handshaking(),
+            Conn::Server(c) => c.is_handshaking(),
+        }
+    }
+
+    pub(crate) fn wants_write(&self) -> bool {
+        match self {
+            Conn::Client(c) => c.wants_write(),
+            Conn::Server(c) => c.wants_write(),
+        }
+    }
+
+    pub(crate) fn wants_read(&self) -> bool {
+        match self {
+            Conn::Client(c) => c.wants_read(),
+            Conn::Server(c) => c.wants_read(),
+        }
+    }
+
+    pub(crate) fn write_tls(&mut self, wr: &mut dyn io::Write) -> Result<usize, io::Error> {
+        match self {
+            Conn::Client(c) => c.write_tls(wr),
+            Conn::Server(c) => c.write_tls(wr),
+        }
+    }
+
+    pub(crate) fn reader(&mut self) -> Reader {
+        match self {
+            Conn::Client(c) => c.reader(),
+            Conn::Server(c) => c.reader(),
+        }
+    }
+
+    pub(crate) fn writer(&mut self) -> Writer {
+        match self {
+            Conn::Client(c) => c.writer(),
+            Conn::Server(c) => c.writer(),
+        }
+    }
+
+    pub(crate) fn send_close_notify(&mut self) {
+        match self {
+            Conn::Client(c) => c.send_close_notify(),
+            Conn::Server(c) => c.send_close_notify(),
+        }
+    }
+
+    pub(crate) fn read_tls(&mut self, rd: &mut dyn io::Read) -> Result<usize, io::Error> {
+        match self {
+            Conn::Client(c) => c.read_tls(rd),
+            Conn::Server(c) => c.read_tls(rd),
+        }
+    }
+
+    pub(crate) fn process_new_packets(&mut self) -> Result<IoState, rustls::Error> {
+        match self {
+            Conn::Client(c) => c.process_new_packets(),
+            Conn::Server(c) => c.process_new_packets(),
+        }
+    }
+
+    #[cfg(feature = "early-data")]
+    pub(crate) fn is_early_data_accepted(&self) -> bool {
+        match self {
+            Conn::Client(c) => c.is_early_data_accepted(),
+            Conn::Server(_) => false,
+        }
+    }
+
+    #[cfg(feature = "early-data")]
+    pub(crate) fn client_early_data(&mut self) -> Option<WriteEarlyData<'_>> {
+        match self {
+            Conn::Client(c) => c.early_data(),
+            Conn::Server(_) => None,
+        }
+    }
+}
+
+impl<'a> From<&'a mut ClientConnection> for Conn<'a> {
+    fn from(conn: &'a mut ClientConnection) -> Self {
+        Conn::Client(conn)
+    }
+}
+
+impl<'a> From<&'a mut ServerConnection> for Conn<'a> {
+    fn from(conn: &'a mut ServerConnection) -> Self {
+        Conn::Server(conn)
+    }
 }
 
 trait WriteTls<IO: AsyncWrite> {
@@ -23,11 +123,11 @@ enum Focus {
     Writable,
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> Stream<'a, IO, D> {
-    pub fn new(io: &'a mut IO, conn: &'a mut ConnectionCommon<D>) -> Self {
+impl<'a, IO: AsyncRead + AsyncWrite + Unpin> Stream<'a, IO> {
+    pub fn new(io: &'a mut IO, conn: impl Into<Conn<'a>>) -> Self {
         Stream {
             io,
-            conn,
+            conn: conn.into(),
             // The state so far is only used to detect EOF, so either Stream
             // or EarlyData state should both be all right.
             eof: false,
@@ -153,7 +253,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> Stream<'a, IO, D> {
     }
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> WriteTls<IO> for Stream<'a, IO, D> {
+impl<'a, IO: AsyncRead + AsyncWrite + Unpin> WriteTls<IO> for Stream<'a, IO> {
     fn write_tls(&mut self, cx: &mut Context) -> io::Result<usize> {
         // TODO writev
 
@@ -183,7 +283,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> WriteTls<IO> for Stream<'
     }
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> AsyncRead for Stream<'a, IO, D> {
+impl<'a, IO: AsyncRead + AsyncWrite + Unpin> AsyncRead for Stream<'a, IO> {
     fn poll_read(
         self: Pin<&mut Self>,
         cx: &mut Context,
@@ -212,7 +312,7 @@ impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> AsyncRead for Stream<'a, 
     }
 }
 
-impl<'a, IO: AsyncRead + AsyncWrite + Unpin, D: Unpin> AsyncWrite for Stream<'a, IO, D> {
+impl<'a, IO: AsyncRead + AsyncWrite + Unpin> AsyncWrite for Stream<'a, IO> {
     fn poll_write(self: Pin<&mut Self>, cx: &mut Context, buf: &[u8]) -> Poll<io::Result<usize>> {
         let this = self.get_mut();
 

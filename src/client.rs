@@ -163,7 +163,7 @@ where
                 let (pos, data) = &mut this.early_data;
 
                 // write early data
-                if let Some(mut early_data) = stream.session.early_data() {
+                if let Some(mut early_data) = stream.conn.client_early_data() {
                     let len = match early_data.write(buf) {
                         Ok(n) => n,
                         Err(ref err) if err.kind() == io::ErrorKind::WouldBlock => {
@@ -176,12 +176,12 @@ where
                 }
 
                 // complete handshake
-                if stream.session.is_handshaking() {
+                if stream.conn.is_handshaking() {
                     ready!(stream.complete_io(cx))?;
                 }
 
                 // write early data (fallback)
-                if !stream.session.is_early_data_accepted() {
+                if !stream.conn.is_early_data_accepted() {
                     while *pos < data.len() {
                         let len = ready!(stream.as_mut_pin().poll_write(cx, &data[*pos..]))?;
                         *pos += len;
